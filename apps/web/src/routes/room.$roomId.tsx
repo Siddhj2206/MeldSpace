@@ -11,6 +11,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { WebrtcProvider } from "y-webrtc";
 
 import { ENV } from "@/env";
+import { HistoryStore } from "@/lib/history-store";
 
 export const Route = createFileRoute("/room/$roomId")({
   ssr: false,
@@ -34,6 +35,25 @@ function signalingUrl() {
   if (ENV.VITE_SIGNALING_URL) return ENV.VITE_SIGNALING_URL;
   const scheme = window.location.protocol === "https:" ? "wss" : "ws";
   return `${scheme}://${window.location.hostname}:4444`;
+}
+
+const DEVICE_ID_KEY = "meldspace:device-id";
+
+/**
+ * Stable per-browser author id until #17 binds Better Auth identity to
+ * `device.register`. Persisted in localStorage so checkpoints keep the same
+ * author across reloads on one device.
+ */
+function stableDeviceId(): string {
+  try {
+    const existing = window.localStorage.getItem(DEVICE_ID_KEY);
+    if (existing) return existing;
+    const fresh = window.crypto.randomUUID();
+    window.localStorage.setItem(DEVICE_ID_KEY, fresh);
+    return fresh;
+  } catch {
+    return `ephemeral-${Date.now().toString(36)}`;
+  }
 }
 
 // Canonical vocabulary (CONTEXT.md): Local, Queued, Converged. "Reconnecting"
@@ -136,6 +156,9 @@ function RoomComponent() {
   const [converged, setConverged] = useState(false);
   const [queued, setQueued] = useState(0);
   const [live, setLive] = useState(false);
+  const [checkpointCount, setCheckpointCount] = useState(0);
+  const historyRef = useRef<HistoryStore | null>(null);
+  const authorRef = useRef({ deviceId: "", displayName: "" });
   const onlineRef = useRef(isOnline);
   const convergedRef = useRef(converged);
   onlineRef.current = isOnline;
@@ -227,6 +250,15 @@ function RoomComponent() {
     awareness.on("change", refreshPeers);
     refreshPeers();
 
+    // Durable history (#6): checkpoints live in this same Y.Doc, so they ride
+    // the existing provider (P2P replication) and persistence (IndexedDB) with
+    // no extra transport. #7 replaces the count below with a history panel.
+    const history = new HistoryStore(doc);
+    historyRef.current = history;
+    authorRef.current = { deviceId: stableDeviceId(), displayName: me.name };
+    setCheckpointCount(history.list().length);
+    const unsubHistory = history.subscribe((all) => setCheckpointCount(all.length));
+
     const ytext = doc.getText("content");
     const undoManager = new Y.UndoManager(ytext);
     const view = new EditorView({
@@ -245,6 +277,8 @@ function RoomComponent() {
     });
 
     return () => {
+      unsubHistory();
+      historyRef.current = null;
       awareness.off("change", refreshPeers);
       provider.off("synced", refreshConvergence);
       provider.off("peers", refreshConvergence);
@@ -261,6 +295,10 @@ function RoomComponent() {
 
   const status = deriveSyncStatus({ persisted, isOnline, converged, queued, live });
 
+  const takeCheckpoint = () => {
+    historyRef.current?.createCheckpoint(authorRef.current);
+  };
+
   return (
     <div className="container mx-auto max-w-4xl px-4 py-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -269,6 +307,14 @@ function RoomComponent() {
           <code className="text-muted-foreground text-sm">{roomId}</code>
         </div>
         <div className="flex items-center gap-4 text-sm">
+          <button
+            type="button"
+            onClick={takeCheckpoint}
+            className="rounded-full border px-3 py-1 text-sm"
+            title="Save a checkpoint of the room's current state. Checkpoints replicate to peers and persist locally."
+          >
+            Checkpoint{checkpointCount > 0 ? ` · ${checkpointCount}` : ""}
+          </button>
           <SyncStatusPill status={status} />
         </div>
       </div>
