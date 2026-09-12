@@ -98,9 +98,15 @@ bun run serve   # http://localhost:4173
 Load a room, go offline, then refresh — the room remounts from cache and reads
 its content from IndexedDB. Chrome should also offer "Install app".
 
-Service workers and install prompts require HTTPS or `localhost`. A LAN-IP
-origin (`http://192.168.x.x:4173`) is not a secure context, so a cross-machine
-demo needs a TLS origin. See `docs/adr/0002-spa-pwa-client.md`.
+Service workers and install prompts require HTTPS or `localhost`. The demo
+origins:
+
+- On one machine: `http://localhost:4173` — a secure context, so install and
+  offline reload both work.
+- Across machines: a Tailscale HTTPS origin (e.g. `tailscale serve`), because a
+  LAN IP such as `http://192.168.x.x:4173` is not a secure context.
+
+See `docs/adr/0002-spa-pwa-client.md`.
 
 ## Git Hooks and Formatting
 
