@@ -7,6 +7,9 @@ export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
     return "OK";
   }),
+  session: publicProcedure.query(({ ctx }) => {
+    return ctx.session;
+  }),
   privateData: protectedProcedure.query(({ ctx }) => {
     return {
       message: "This is private",

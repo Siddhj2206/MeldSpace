@@ -81,6 +81,33 @@ Import the generated `ENV` accessor in application code. Shared database and aut
 
 Bun's automatic env loading is disabled in `bunfig.toml`; the framework integration or server bootstrap loads Varlock. Node deployments must include Varlock and its dependencies alongside the app schema.
 
+## Offline / PWA
+
+The web client is a SPA and an installable PWA. The app shell is precached into
+the service worker Cache Storage; room state lives in IndexedDB. The service
+worker is generated only for production builds, so `bun run dev` stays clean.
+
+Test offline from a production build on a secure origin (`localhost` counts):
+
+```bash
+cd apps/web
+bun run build
+bun run serve   # http://localhost:4173
+```
+
+Load a room, go offline, then refresh — the room remounts from cache and reads
+its content from IndexedDB. Chrome should also offer "Install app".
+
+Service workers and install prompts require HTTPS or `localhost`. The demo
+origins:
+
+- On one machine: `http://localhost:4173` — a secure context, so install and
+  offline reload both work.
+- Across machines: a Tailscale HTTPS origin (e.g. `tailscale serve`), because a
+  LAN IP such as `http://192.168.x.x:4173` is not a secure context.
+
+See `docs/adr/0002-spa-pwa-client.md`.
+
 ## Git Hooks and Formatting
 
 - Run checks: `bun run check`

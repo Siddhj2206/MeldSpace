@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="MeldSpace">
+  <rect width="512" height="512" fill="#0B0C0D" />
+  <line x1="176" y1="176" x2="336" y2="336" stroke="#ECEDEA" stroke-opacity="0.35" stroke-width="16" stroke-linecap="round" />
+  <circle cx="176" cy="176" r="60" fill="#E0A23C" />
+  <circle cx="336" cy="336" r="60" fill="#ECEDEA" />
+</svg>
