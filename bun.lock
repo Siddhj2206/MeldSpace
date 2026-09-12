@@ -102,6 +102,7 @@
         "@MeldSpace/db": "workspace:*",
         "@trpc/client": "catalog:",
         "@trpc/server": "catalog:",
+        "drizzle-orm": "^0.45.2",
         "zod": "catalog:",
       },
       "devDependencies": {
