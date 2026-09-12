@@ -8,6 +8,10 @@ export default defineConfig({
   server: {
     port: 3001,
     host: true,
+    proxy: {
+      "/trpc": { target: "http://localhost:3000", changeOrigin: true },
+      "/api": { target: "http://localhost:3000", changeOrigin: true },
+    },
   },
   resolve: {
     tsconfigPaths: true,

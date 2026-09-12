@@ -1,0 +1,14 @@
+/**
+ * Base URL of the API server.
+ *
+ * In the browser we talk to same-origin paths, which Vite proxies to the API
+ * server (see `vite.config.ts`). That keeps the app working from any host — a
+ * second laptop on the LAN included — with no CORS. During SSR we call the
+ * server directly.
+ */
+export function getServerBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return (import.meta.env.VITE_SERVER_URL as string | undefined) ?? "http://localhost:3000";
+}
