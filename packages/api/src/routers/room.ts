@@ -1,50 +1,43 @@
-import type { Database } from "@MeldSpace/db";
 import { device, member, room } from "@MeldSpace/db/schema/room";
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { protectedProcedure, publicProcedure, router } from "../index";
+import { nameInput } from "../lib/inputs";
+import { listRoomMembers, memberColumns } from "../lib/member";
 
 const JOIN_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const JOIN_CODE_LENGTH = 6;
+const MAX_JOIN_CODE_ATTEMPTS = 5;
+const PG_UNIQUE_VIOLATION = "23505";
 
-function generateJoinCode(length = JOIN_CODE_LENGTH) {
-  const bytes = crypto.getRandomValues(new Uint8Array(length));
+function generateJoinCode() {
+  const bytes = crypto.getRandomValues(new Uint8Array(JOIN_CODE_LENGTH));
   let code = "";
-  for (let i = 0; i < length; i++) {
+  for (let i = 0; i < JOIN_CODE_LENGTH; i++) {
     code += JOIN_CODE_ALPHABET[(bytes[i] ?? 0) % JOIN_CODE_ALPHABET.length];
   }
   return code;
 }
 
-function isUniqueViolation(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: unknown }).code === "23505"
-  );
-}
-
-async function listRoomMembers(db: Database, roomId: string) {
-  return db
-    .select({
-      id: member.id,
-      deviceId: member.deviceId,
-      displayName: member.displayName,
-      joinedAt: member.joinedAt,
-    })
-    .from(member)
-    .where(eq(member.roomId, roomId))
-    .orderBy(asc(member.joinedAt));
+// drizzle-orm wraps driver errors (e.g. DrizzleQueryError), so the Postgres
+// error code lives on `.cause` rather than on the thrown error itself. Walk
+// the cause chain to find it.
+function isUniqueViolation(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  if ("code" in error && (error as { code?: unknown }).code === PG_UNIQUE_VIOLATION) {
+    return true;
+  }
+  const { cause } = error as { cause?: unknown };
+  return cause !== undefined && cause !== error && isUniqueViolation(cause);
 }
 
 export const roomRouter = router({
   create: protectedProcedure
-    .input(z.object({ name: z.string().trim().min(1).max(100) }))
+    .input(z.object({ name: nameInput }))
     .mutation(async ({ ctx, input }) => {
-      for (let attempt = 0; attempt < 5; attempt++) {
+      for (let attempt = 0; attempt < MAX_JOIN_CODE_ATTEMPTS; attempt++) {
         try {
           const [created] = await ctx.db
             .insert(room)
@@ -62,11 +55,15 @@ export const roomRouter = router({
           }
           return created;
         } catch (error) {
-          if (isUniqueViolation(error) && attempt < 4) continue;
+          // A join-code collision is the only retryable failure here.
+          if (isUniqueViolation(error)) continue;
           throw error;
         }
       }
-      throw new TRPCError({ code: "CONFLICT", message: "Could not allocate a join code, retry" });
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Could not allocate a join code, retry",
+      });
     }),
 
   byId: publicProcedure.input(z.object({ id: z.string().min(1) })).query(async ({ ctx, input }) => {
@@ -88,7 +85,7 @@ export const roomRouter = router({
       z.object({
         joinCode: z.string().trim().min(1).max(32),
         deviceId: z.string().min(1),
-        displayName: z.string().trim().min(1).max(100),
+        displayName: nameInput,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -115,7 +112,7 @@ export const roomRouter = router({
         .where(eq(device.id, input.deviceId));
 
       const [existing] = await ctx.db
-        .select()
+        .select(memberColumns)
         .from(member)
         .where(and(eq(member.roomId, found.id), eq(member.deviceId, input.deviceId)))
         .limit(1);
@@ -128,12 +125,7 @@ export const roomRouter = router({
         }
         return {
           roomId: found.id,
-          member: {
-            id: existing.id,
-            deviceId: existing.deviceId,
-            displayName: input.displayName,
-            joinedAt: existing.joinedAt,
-          },
+          member: { ...existing, displayName: input.displayName },
         };
       }
 
@@ -145,12 +137,7 @@ export const roomRouter = router({
             deviceId: input.deviceId,
             displayName: input.displayName,
           })
-          .returning({
-            id: member.id,
-            deviceId: member.deviceId,
-            displayName: member.displayName,
-            joinedAt: member.joinedAt,
-          });
+          .returning(memberColumns);
         if (!created) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to join room" });
         }
@@ -159,20 +146,12 @@ export const roomRouter = router({
         if (isUniqueViolation(error)) {
           // Lost a race with another join for the same device: read the winner.
           const [winner] = await ctx.db
-            .select()
+            .select(memberColumns)
             .from(member)
             .where(and(eq(member.roomId, found.id), eq(member.deviceId, input.deviceId)))
             .limit(1);
           if (winner) {
-            return {
-              roomId: found.id,
-              member: {
-                id: winner.id,
-                deviceId: winner.deviceId,
-                displayName: winner.displayName,
-                joinedAt: winner.joinedAt,
-              },
-            };
+            return { roomId: found.id, member: winner };
           }
         }
         throw error;

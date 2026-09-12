@@ -8,23 +8,19 @@ import { user } from "./auth";
 // - No authority columns (no owner/coordinator/epoch). Coordinator is
 //   presence-derived (see #10); membership is equal-authority.
 
-export const room = pgTable(
-  "room",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    name: text("name").notNull(),
-    joinCode: text("join_code").notNull().unique(),
-    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [uniqueIndex("room_join_code_uidx").on(table.joinCode)],
-);
+export const room = pgTable("room", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  joinCode: text("join_code").notNull().unique(),
+  createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
 
 export const device = pgTable(
   "device",
@@ -44,7 +40,7 @@ export const device = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("device_user_id_idx").on(table.userId)],
+  (table) => [index("device_userId_idx").on(table.userId)],
 );
 
 export const member = pgTable(
@@ -64,9 +60,9 @@ export const member = pgTable(
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("member_room_device_uidx").on(table.roomId, table.deviceId),
-    index("member_room_id_idx").on(table.roomId),
-    index("member_device_id_idx").on(table.deviceId),
+    uniqueIndex("member_roomId_deviceId_uidx").on(table.roomId, table.deviceId),
+    index("member_roomId_idx").on(table.roomId),
+    index("member_deviceId_idx").on(table.deviceId),
   ],
 );
 
@@ -80,10 +76,11 @@ export const invite = pgTable(
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     expiresAt: timestamp("expires_at"),
     maxUses: integer("max_uses"),
+    // Counter backing `maxUses`; kept alongside it so a cap can be enforced.
     uses: integer("uses").default(0).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [index("invite_room_id_idx").on(table.roomId)],
+  (table) => [index("invite_roomId_idx").on(table.roomId)],
 );
 
 export const roomRelations = relations(room, ({ many }) => ({

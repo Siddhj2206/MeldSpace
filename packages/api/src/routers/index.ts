@@ -18,3 +18,6 @@ export const appRouter = router({
   member: memberRouter,
 });
 export type AppRouter = typeof appRouter;
+
+/** Frozen member shape the client lane can import (see #15). */
+export type { Member } from "../lib/member";

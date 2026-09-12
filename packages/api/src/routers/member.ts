@@ -1,9 +1,10 @@
-import { member, room } from "@MeldSpace/db/schema/room";
+import { room } from "@MeldSpace/db/schema/room";
 import { TRPCError } from "@trpc/server";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { publicProcedure, router } from "../index";
+import { listRoomMembers } from "../lib/member";
 
 export const memberRouter = router({
   list: publicProcedure
@@ -17,15 +18,6 @@ export const memberRouter = router({
       if (!found) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Room not found" });
       }
-      return ctx.db
-        .select({
-          id: member.id,
-          deviceId: member.deviceId,
-          displayName: member.displayName,
-          joinedAt: member.joinedAt,
-        })
-        .from(member)
-        .where(eq(member.roomId, input.roomId))
-        .orderBy(asc(member.joinedAt));
+      return await listRoomMembers(ctx.db, input.roomId);
     }),
 });

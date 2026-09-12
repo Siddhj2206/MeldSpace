@@ -1,17 +1,15 @@
 import { device } from "@MeldSpace/db/schema/room";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { publicProcedure, router } from "../index";
-
-const displayNameInput = z.string().trim().min(1).max(100);
+import { nameInput } from "../lib/inputs";
 
 export const deviceRouter = router({
   register: publicProcedure
     .input(
       z.object({
-        displayName: displayNameInput,
+        displayName: nameInput,
         publicKey: z.string().trim().max(2048).nullish(),
       }),
     )
@@ -32,22 +30,5 @@ export const deviceRouter = router({
         });
       }
       return { deviceId: created.id, displayName: created.displayName };
-    }),
-
-  touch: publicProcedure
-    .input(z.object({ deviceId: z.string().min(1) }))
-    .mutation(async ({ ctx, input }) => {
-      const [updated] = await ctx.db
-        .update(device)
-        .set({ lastSeenAt: new Date() })
-        .where(eq(device.id, input.deviceId))
-        .returning({ id: device.id });
-      if (!updated) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Device not registered. Call device.register first.",
-        });
-      }
-      return { deviceId: updated.id };
     }),
 });
