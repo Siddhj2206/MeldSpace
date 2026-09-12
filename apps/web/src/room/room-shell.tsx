@@ -56,7 +56,7 @@ function PresenceStack() {
 
 function RoomShellInner() {
   const { toggleSidebar } = useSidebar();
-  const { runtime } = useRoom();
+  const { runtime, checkpoints, createCheckpoint } = useRoom();
   const documents = useRoomDocuments();
   const artifacts = useMemo(() => documentArtifacts(documents), [documents]);
 
@@ -213,6 +213,15 @@ function RoomShellInner() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={createCheckpoint}
+              disabled={!runtime}
+              title="Save a checkpoint of the room's current state. Checkpoints replicate to peers and persist locally."
+              className="h-7.5 shrink-0 rounded-sm px-2.5 text-[12.5px] text-muted-foreground"
+            >
+              Checkpoint{checkpoints.length > 0 ? ` · ${checkpoints.length}` : ""}
+            </Button>
             <PresenceStack />
             <span className="h-4.5 w-px shrink-0 bg-border-strong" />
             <Button
@@ -261,7 +270,8 @@ function RoomShellInner() {
         onOpenPanel={setRailPanel}
         onShare={() => setShareOpen(true)}
         onToggleSidebar={toggleSidebar}
-        hasCheckpoints={false}
+        onCreateCheckpoint={createCheckpoint}
+        canCheckpoint={runtime !== null}
       />
     </>
   );

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import * as Y from "yjs";
 
 import { useRoom } from "./room-provider";
+import { DOCUMENTS_KEY, TITLES_KEY } from "./room-content";
 
 /**
  * The room's documents.
@@ -22,9 +23,6 @@ export type RoomDocument = {
 
 export const LEGACY_DOCUMENT_ID = "document:content";
 export const LEGACY_DOCUMENT_TITLE = "notes.md";
-
-const DOCUMENTS_KEY = "documents";
-const TITLES_KEY = "document-titles";
 
 function documentsMap(doc: Y.Doc) {
   return doc.getMap<Y.Text>(DOCUMENTS_KEY);

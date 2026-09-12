@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -14,12 +15,49 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import { WebrtcProvider } from "y-webrtc";
 
 import { ENV } from "@/env";
+import { HistoryStore, type CheckpointMeta } from "@/lib/history-store";
 import { useTRPC } from "@/utils/trpc";
 
 import { identityColor, initials } from "./identity";
+import { readRoomContent } from "./room-content";
 import { deriveRoomStatus, type RoomStatus } from "./room-status";
 
 const GUEST_NAME_KEY = "meldspace.peer-name";
+const DEVICE_ID_KEY = "meldspace:device-id";
+
+/**
+ * RFC 4122 v4 id. `crypto.randomUUID` only exists in secure contexts, so a LAN
+ * demo served over http needs this fallback — otherwise the device id below
+ * degrades to a per-load value and checkpoint authorship becomes unstable.
+ */
+function randomId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const random = (Math.random() * 16) | 0;
+    const value = char === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+/**
+ * Stable per-browser author id until #17 binds Better Auth identity to
+ * `device.register`. Persisted in localStorage so checkpoints keep the same
+ * author across reloads on one device.
+ */
+function readDeviceId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const existing = window.localStorage.getItem(DEVICE_ID_KEY);
+    if (existing) return existing;
+    const fresh = randomId();
+    window.localStorage.setItem(DEVICE_ID_KEY, fresh);
+    return fresh;
+  } catch {
+    return `ephemeral-${Date.now().toString(36)}`;
+  }
+}
 
 /** A stable per-browser alias, used when nobody is signed in. */
 function readGuestName(): string {
@@ -86,6 +124,19 @@ export type RoomContextValue = {
   meta: RoomMeta | null;
   /** Shareable URL for this room. */
   shareUrl: string;
+  /**
+   * Durable history (#6) over this room's own `Y.Doc`; null until the runtime
+   * exists. Checkpoints replicate with the room and persist in IndexedDB.
+   */
+  history: HistoryStore | null;
+  /** The checkpoint log, oldest first. Empty until the runtime exists. */
+  checkpoints: CheckpointMeta[];
+  /**
+   * Capture the current room state. No-op when unchanged since the head.
+   * Naming a checkpoint is the coordinator's job (#10), so no label is accepted
+   * here yet — that call is where the coordinator gate belongs.
+   */
+  createCheckpoint: () => void;
 };
 
 const RoomContext = createContext<RoomContextValue | null>(null);
@@ -110,6 +161,9 @@ export function RoomProvider({
     () => typeof navigator === "undefined" || navigator.onLine,
   );
   const [guestName] = useState(readGuestName);
+  const [deviceId] = useState(readDeviceId);
+  const [history, setHistory] = useState<HistoryStore | null>(null);
+  const [checkpoints, setCheckpoints] = useState<CheckpointMeta[]>([]);
 
   const onlineRef = useRef(isOnline);
   onlineRef.current = isOnline;
@@ -213,6 +267,26 @@ export function RoomProvider({
     return () => awareness.off("change", refresh);
   }, [runtime, name]);
 
+  // Durable history (#6): checkpoints live in the same Y.Doc as the room, so
+  // they ride the existing provider (P2P replication) and persistence
+  // (IndexedDB) with no extra transport. #7 replaces this with the full panel.
+  useEffect(() => {
+    if (!runtime) return;
+    const store = new HistoryStore(runtime.doc, { contentSource: readRoomContent });
+    setHistory(store);
+    setCheckpoints(store.list());
+    const unsubscribe = store.subscribe(setCheckpoints);
+    return () => {
+      unsubscribe();
+      setHistory(null);
+      setCheckpoints([]);
+    };
+  }, [runtime]);
+
+  const createCheckpoint = useCallback(() => {
+    history?.createCheckpoint({ deviceId, displayName: name });
+  }, [history, deviceId, name]);
+
   // Control-plane metadata is a bonus, never a gate: a local (unregistered) or
   // offline room simply renders without a join code.
   const byIdQuery = useQuery({
@@ -241,8 +315,25 @@ export function RoomProvider({
       name,
       meta: byIdQuery.data ?? null,
       shareUrl,
+      history,
+      checkpoints,
+      createCheckpoint,
     }),
-    [roomId, runtime, peers, meshPeers, mesh, status, isOnline, name, byIdQuery.data, shareUrl],
+    [
+      roomId,
+      runtime,
+      peers,
+      meshPeers,
+      mesh,
+      status,
+      isOnline,
+      name,
+      byIdQuery.data,
+      shareUrl,
+      history,
+      checkpoints,
+      createCheckpoint,
+    ],
   );
 
   return <RoomContext.Provider value={value}>{children}</RoomContext.Provider>;
