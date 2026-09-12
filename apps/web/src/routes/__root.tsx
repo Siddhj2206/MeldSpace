@@ -1,12 +1,12 @@
 import type { AppRouter } from "@MeldSpace/api/routers/index";
 import { Toaster } from "@MeldSpace/ui/components/sonner";
+import { TooltipProvider } from "@MeldSpace/ui/components/tooltip";
 import type { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 
-import Header from "../components/header";
 import PwaRegister from "../components/pwa-register";
 
 import appCss from "../index.css?url";
@@ -70,14 +70,13 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body>
-        <div className="grid h-svh grid-rows-[auto_1fr]">
-          <Header />
+        <TooltipProvider>
           <Outlet />
-        </div>
-        <Toaster richColors />
-        <PwaRegister />
-        <TanStackRouterDevtools position="bottom-left" />
-        <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+          <Toaster richColors />
+          <PwaRegister />
+          <TanStackRouterDevtools position="bottom-left" />
+          <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+        </TooltipProvider>
         <Scripts />
       </body>
     </html>

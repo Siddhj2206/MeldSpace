@@ -56,8 +56,8 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
   }
 
   return (
-    <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Create Account</h1>
+    <div className="flex w-full flex-col gap-6">
+      <h1 className="text-title-2 font-semibold tracking-tight text-foreground">Create account</h1>
 
       <form
         onSubmit={(e) => {
@@ -80,7 +80,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p key={error?.message} className="text-danger">
                     {error?.message}
                   </p>
                 ))}
@@ -103,7 +103,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p key={error?.message} className="text-danger">
                     {error?.message}
                   </p>
                 ))}
@@ -126,7 +126,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p key={error?.message} className="text-danger">
                     {error?.message}
                   </p>
                 ))}
@@ -146,13 +146,13 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
         </form.Subscribe>
       </form>
 
-      <div className="mt-4 text-center">
+      <div className="text-center">
         <Button
           variant="link"
           onClick={onSwitchToSignIn}
-          className="text-indigo-600 hover:text-indigo-800"
+          className="text-signal hover:text-signal/80"
         >
-          Already have an account? Sign In
+          Already have an account? Sign in
         </Button>
       </div>
     </div>
