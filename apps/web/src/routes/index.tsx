@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
+import RoomLauncher from "@/components/room-launcher";
 import { useTRPC } from "@/utils/trpc";
 
 export const Route = createFileRoute("/")({
@@ -46,6 +47,7 @@ function HomeComponent() {
             </span>
           </div>
         </section>
+        <RoomLauncher />
       </div>
     </div>
   );
