@@ -1,4 +1,4 @@
-import type { CheckpointMeta } from "./history-store";
+import { compareCheckpoints, type CheckpointMeta } from "./history-store";
 
 /**
  * Optional isomorphic-git export path (#6: "isomorphic-git is an optional
@@ -11,8 +11,9 @@ import type { CheckpointMeta } from "./history-store";
  *
  * Each checkpoint becomes one commit: the room text at checkpoint time is
  * written to `room.md`, committed with the checkpoint's author + timestamp.
- * Parent linkage is best-effort (a linear export follows `parent` ids; forks
- * are exported in list order on top of the running tip).
+ * Commits are ordered so each checkpoint follows its `parent`. A flat commit
+ * list cannot represent a fork, so a second branch is committed once its shared
+ * parent exists — best-effort lineage, not a merge graph.
  *
  * ```ts
  * const [{ commit, add, writeFile }, LightningFS] = await Promise.all([
@@ -39,14 +40,36 @@ export type ExportableCheckpoint = CheckpointMeta & {
   text: string;
 };
 
+/**
+ * Order checkpoints so a parent is always committed before its children. A
+ * linear chain follows `parent` exactly; forked branches are appended once
+ * their shared parent exists. Deterministic thanks to `compareCheckpoints`.
+ */
+export function orderCheckpointsForExport(
+  checkpoints: ExportableCheckpoint[],
+): ExportableCheckpoint[] {
+  const byId = new Map(checkpoints.map((checkpoint) => [checkpoint.id, checkpoint]));
+  const ordered: ExportableCheckpoint[] = [];
+  const seen = new Set<string>();
+  const visit = (checkpoint: ExportableCheckpoint) => {
+    if (seen.has(checkpoint.id)) return;
+    seen.add(checkpoint.id);
+    const parent = checkpoint.parent ? byId.get(checkpoint.parent) : undefined;
+    if (parent) visit(parent);
+    ordered.push(checkpoint);
+  };
+  for (const checkpoint of [...checkpoints].sort(compareCheckpoints)) {
+    visit(checkpoint);
+  }
+  return ordered;
+}
+
 export async function exportCheckpointsToGit(
   dir: string,
   checkpoints: ExportableCheckpoint[],
   git: GitBackend,
 ): Promise<string[]> {
-  const ordered = [...checkpoints].sort((a, b) =>
-    a.createdAt !== b.createdAt ? a.createdAt - b.createdAt : a.id < b.id ? -1 : 1,
-  );
+  const ordered = orderCheckpointsForExport(checkpoints);
   await git.init({ dir });
   const shas: string[] = [];
   for (const checkpoint of ordered) {

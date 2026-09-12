@@ -36,6 +36,30 @@ export type CheckpointAuthor = {
   displayName: string;
 };
 
+/**
+ * The room's durable content as seen by the checkpoint log.
+ *
+ * `canonical` is hashed to decide whether a checkpoint is actually new; it must
+ * cover *every* durable content type so edits to any of them are recorded.
+ * `preview` is the human-readable slice shown in the UI.
+ *
+ * The default source reads only the legacy top-level `content` text. Rooms that
+ * grew additional documents (#15) inject their own source via
+ * `HistoryStoreOptions.contentSource`, otherwise edits to those documents leave
+ * `contentHash` unchanged and are silently skipped by the dedup check.
+ */
+export type RoomContent = {
+  canonical: string;
+  preview: string;
+};
+
+export type HistoryStoreOptions = {
+  mapName?: string;
+  textTypeName?: string;
+  /** Reads the room's durable content. Defaults to the legacy `content` text. */
+  contentSource?: (doc: Y.Doc) => RoomContent;
+};
+
 export type Checkpoint = {
   /** Content address: hex SHA-256 over (parent, author, timestamp, snapshot). */
   id: string;
@@ -48,13 +72,13 @@ export type Checkpoint = {
   /** Hex SHA-256 of the raw snapshot bytes alone. */
   snapshotHash: string;
   /**
-   * Hex SHA-256 of the room content (the shared text) at checkpoint time.
-   * Snapshots embed the checkpoint log itself, so snapshot bytes change with
-   * every checkpoint; `contentHash` is what decides "nothing changed" and what
-   * lets #7 tell whether the room moved since a checkpoint.
+   * Hex SHA-256 of the room content (`RoomContent.canonical`) at checkpoint
+   * time. Snapshots embed the checkpoint log itself, so snapshot bytes change
+   * with every checkpoint; `contentHash` is what decides "nothing changed" and
+   * what lets #7 tell whether the room moved since a checkpoint.
    */
   contentHash: string;
-  /** First chars of the room text at checkpoint time; lets #7 render without decoding. */
+  /** First chars of the room content at checkpoint time; lets #7 render without decoding. */
   textPreview: string;
   label: string;
   /** Full `Y.encodeStateAsUpdate(doc)` payload. Restored via `inspect` or `Y.applyUpdate`. */
@@ -66,8 +90,6 @@ export type CheckpointMeta = Omit<Checkpoint, "snapshot">;
 export type CreateCheckpointOptions = {
   label?: string;
 };
-
-const NO_PARENT = "";
 
 function toHex(bytes: Uint8Array): string {
   let out = "";
@@ -118,17 +140,18 @@ function checkpointIdBytes(
   ]);
 }
 
-function byTimeThenId(a: CheckpointMeta, b: CheckpointMeta): number {
+/** Oldest first, ties broken by id so every replica orders the log the same way. */
+export function compareCheckpoints(a: CheckpointMeta, b: CheckpointMeta): number {
   if (a.createdAt !== b.createdAt) return a.createdAt - b.createdAt;
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
-function readField(map: Y.Map<unknown>, key: string): unknown {
-  return map.get(key);
-}
-
 function asString(value: unknown, fallback = ""): string {
   return typeof value === "string" ? value : fallback;
+}
+
+function asNullableString(value: unknown): string | null {
+  return typeof value === "string" && value !== "" ? value : null;
 }
 
 function asNumber(value: unknown, fallback = 0): number {
@@ -139,15 +162,22 @@ function asBytes(value: unknown): Uint8Array | null {
   return value instanceof Uint8Array ? value : null;
 }
 
+function defaultContentSource(doc: Y.Doc, textTypeName: string): RoomContent {
+  const text = doc.getText(textTypeName).toString();
+  return { canonical: text, preview: text };
+}
+
 export class HistoryStore {
   private readonly doc: Y.Doc;
   private readonly map: Y.Map<Y.Map<unknown>>;
-  private readonly textTypeName: string;
+  private readonly contentSource: (doc: Y.Doc) => RoomContent;
 
-  constructor(doc: Y.Doc, options?: { mapName?: string; textTypeName?: string }) {
+  constructor(doc: Y.Doc, options?: HistoryStoreOptions) {
     this.doc = doc;
     this.map = doc.getMap<Y.Map<unknown>>(options?.mapName ?? CHECKPOINTS_MAP_NAME);
-    this.textTypeName = options?.textTypeName ?? DEFAULT_TEXT_TYPE_NAME;
+    const textTypeName = options?.textTypeName ?? DEFAULT_TEXT_TYPE_NAME;
+    this.contentSource =
+      options?.contentSource ?? ((target) => defaultContentSource(target, textTypeName));
   }
 
   /**
@@ -164,10 +194,10 @@ export class HistoryStore {
     if (!displayName) throw new Error("HistoryStore: author.displayName must be non-empty.");
     const label = (options?.label ?? "").trim().slice(0, 140);
 
-    const text = this.doc.getText(this.textTypeName).toString();
-    const contentHash = sha256Hex(textEncoder.encode(text));
+    const content = this.contentSource(this.doc);
+    const contentHash = sha256Hex(textEncoder.encode(content.canonical));
     const head = this.head();
-    if (head && asString(readField(head.fields, "contentHash")) === contentHash) {
+    if (head && asString(head.fields.get("contentHash")) === contentHash) {
       return this.toMeta(head.id, head.fields);
     }
 
@@ -177,11 +207,11 @@ export class HistoryStore {
     const createdAt = Date.now();
     const parent = head?.id ?? null;
     const cleanAuthor: CheckpointAuthor = { deviceId, displayName };
-    const id = sha256Hex(checkpointIdBytes(parent ?? NO_PARENT, cleanAuthor, createdAt, snapshot));
-    const textPreview = text.slice(0, TEXT_PREVIEW_MAX_LENGTH);
+    const id = sha256Hex(checkpointIdBytes(parent ?? "", cleanAuthor, createdAt, snapshot));
+    const textPreview = content.preview.slice(0, TEXT_PREVIEW_MAX_LENGTH);
 
     const fields = new Y.Map<unknown>();
-    fields.set("parent", parent ?? NO_PARENT);
+    fields.set("parent", parent);
     fields.set("authorDeviceId", deviceId);
     fields.set("authorName", displayName);
     fields.set("createdAt", createdAt);
@@ -206,7 +236,7 @@ export class HistoryStore {
     this.map.forEach((fields, id) => {
       out.push(this.toMeta(id, fields));
     });
-    out.sort(byTimeThenId);
+    out.sort(compareCheckpoints);
     return out;
   }
 
@@ -214,7 +244,7 @@ export class HistoryStore {
   get(id: string): Checkpoint | null {
     const fields = this.map.get(id);
     if (!fields) return null;
-    const snapshot = asBytes(readField(fields, "snapshot"));
+    const snapshot = asBytes(fields.get("snapshot"));
     if (!snapshot) return null;
     return { ...this.toMeta(id, fields), snapshot };
   }
@@ -223,8 +253,8 @@ export class HistoryStore {
   heads(): CheckpointMeta[] {
     const parented = new Set<string>();
     this.map.forEach((fields) => {
-      const parent = asString(readField(fields, "parent"));
-      if (parent !== NO_PARENT) parented.add(parent);
+      const parent = asNullableString(fields.get("parent"));
+      if (parent) parented.add(parent);
     });
     return this.list().filter((meta) => !parented.has(meta.id));
   }
@@ -271,7 +301,7 @@ export class HistoryStore {
     let bestFields: Y.Map<unknown> | null = null;
     let bestTime = -1;
     this.map.forEach((fields, id) => {
-      const time = asNumber(readField(fields, "createdAt"));
+      const time = asNumber(fields.get("createdAt"));
       if (bestId === null || time > bestTime || (time === bestTime && id > bestId)) {
         bestId = id;
         bestFields = fields;
@@ -282,22 +312,21 @@ export class HistoryStore {
   }
 
   private toMeta(id: string, fields: Y.Map<unknown>): CheckpointMeta {
-    const parent = asString(readField(fields, "parent"));
-    const snapshotHashStored = asString(readField(fields, "snapshotHash"));
+    const snapshotHashStored = asString(fields.get("snapshotHash"));
     // Older peers may see the snapshot before its hash field arrives; derive a
     // fallback from the bytes we do have so the UI never renders blank.
-    const snapshot = asBytes(readField(fields, "snapshot"));
+    const snapshot = asBytes(fields.get("snapshot"));
     return {
       id,
-      parent: parent === NO_PARENT ? null : parent,
-      authorDeviceId: asString(readField(fields, "authorDeviceId")),
-      authorName: asString(readField(fields, "authorName")),
-      createdAt: asNumber(readField(fields, "createdAt")),
+      parent: asNullableString(fields.get("parent")),
+      authorDeviceId: asString(fields.get("authorDeviceId")),
+      authorName: asString(fields.get("authorName")),
+      createdAt: asNumber(fields.get("createdAt")),
       snapshotHash:
         snapshotHashStored !== "" ? snapshotHashStored : snapshot ? sha256Hex(snapshot) : "",
-      contentHash: asString(readField(fields, "contentHash")),
-      textPreview: asString(readField(fields, "textPreview")),
-      label: asString(readField(fields, "label")),
+      contentHash: asString(fields.get("contentHash")),
+      textPreview: asString(fields.get("textPreview")),
+      label: asString(fields.get("label")),
     };
   }
 }

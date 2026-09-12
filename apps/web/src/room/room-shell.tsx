@@ -118,11 +118,7 @@ function RoomShellInner() {
       switch (event.key.toLowerCase()) {
         case "k":
           event.preventDefault();
-          if (event.shiftKey) {
-            createCheckpoint();
-          } else {
-            setPaletteOpen((open) => !open);
-          }
+          setPaletteOpen((open) => !open);
           break;
         case "s":
           event.preventDefault();
@@ -154,7 +150,7 @@ function RoomShellInner() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [artifacts, createArtifact, createCheckpoint]);
+  }, [artifacts, createArtifact]);
 
   return (
     <>
@@ -217,15 +213,15 @@ function RoomShellInner() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => createCheckpoint()}
+            <Button
+              variant="ghost"
+              onClick={createCheckpoint}
               disabled={!runtime}
               title="Save a checkpoint of the room's current state. Checkpoints replicate to peers and persist locally."
-              className="flex h-7.5 shrink-0 items-center rounded-sm px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground disabled:opacity-50"
+              className="h-7.5 shrink-0 rounded-sm px-2.5 text-[12.5px] text-muted-foreground"
             >
               Checkpoint{checkpoints.length > 0 ? ` · ${checkpoints.length}` : ""}
-            </button>
+            </Button>
             <PresenceStack />
             <span className="h-4.5 w-px shrink-0 bg-border-strong" />
             <Button
@@ -274,8 +270,8 @@ function RoomShellInner() {
         onOpenPanel={setRailPanel}
         onShare={() => setShareOpen(true)}
         onToggleSidebar={toggleSidebar}
-        onCreateCheckpoint={() => createCheckpoint()}
-        hasCheckpoints={runtime !== null}
+        onCreateCheckpoint={createCheckpoint}
+        canCheckpoint={runtime !== null}
       />
     </>
   );

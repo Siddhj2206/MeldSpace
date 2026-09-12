@@ -41,7 +41,7 @@ export function CommandPalette({
   onShare,
   onToggleSidebar,
   onCreateCheckpoint,
-  hasCheckpoints,
+  canCheckpoint,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -51,7 +51,8 @@ export function CommandPalette({
   onShare: () => void;
   onToggleSidebar: () => void;
   onCreateCheckpoint: () => void;
-  hasCheckpoints: boolean;
+  /** True once the room runtime (and therefore the history store) is ready. */
+  canCheckpoint: boolean;
 }) {
   const { peers } = useRoom();
   const [query, setQuery] = useState("");
@@ -130,12 +131,12 @@ export function CommandPalette({
           </CommandItem>
           <CommandItem
             value="create checkpoint"
-            disabled={!hasCheckpoints}
+            disabled={!canCheckpoint}
             onSelect={() => run(onCreateCheckpoint)}
           >
             <CheckIcon />
             Create checkpoint
-            <CommandShortcut>{hasCheckpoints ? <Key>⌘⇧K</Key> : "arrives #6"}</CommandShortcut>
+            {canCheckpoint ? null : <CommandShortcut>arrives #6</CommandShortcut>}
           </CommandItem>
           <CommandItem value="toggle sidebar" onSelect={() => run(onToggleSidebar)}>
             <PanelLeftIcon />
