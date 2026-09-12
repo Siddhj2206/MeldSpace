@@ -7,6 +7,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 
 import Header from "../components/header";
+import PwaRegister from "../components/pwa-register";
 
 import appCss from "../index.css?url";
 export interface RouterAppContext {
@@ -25,13 +26,36 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "My App",
+        name: "theme-color",
+        content: "#0B0C0D",
+      },
+      {
+        title: "MeldSpace",
       },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "manifest",
+        href: "/manifest.webmanifest",
+      },
+      {
+        rel: "icon",
+        href: "/icon.svg",
+        type: "image/svg+xml",
+      },
+      {
+        rel: "icon",
+        href: "/favicon-64.png",
+        type: "image/png",
+        sizes: "64x64",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/apple-touch-icon.png",
       },
     ],
   }),
@@ -51,6 +75,7 @@ function RootDocument() {
           <Outlet />
         </div>
         <Toaster richColors />
+        <PwaRegister />
         <TanStackRouterDevtools position="bottom-left" />
         <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
         <Scripts />
