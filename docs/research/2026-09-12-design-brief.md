@@ -3,7 +3,7 @@
 Date: 2026-09-12.
 
 Source of truth: **Paper file "MeldSpace — Room Shell"** — https://app.paper.design/file/01M2AE77EFA2H4CMS3P5EB5BBE
-Artboards: `Room shell — editor`, `Room shell — board`.
+Artboards: `Room shell — editor`, `Room shell — board`, `Room — remaining screens`.
 
 ## Mood
 
