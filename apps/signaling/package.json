@@ -1,0 +1,11 @@
+{
+  "name": "signaling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "y-webrtc-signaling"
+  },
+  "dependencies": {
+    "y-webrtc": "^10.3.0"
+  }
+}
