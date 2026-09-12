@@ -19,6 +19,7 @@ import {
 import { createProjectFile, setProjectAsset } from "./project/project";
 import { useProjectAssets, useProjectFiles } from "./project/use-project";
 import { useRoom } from "./room-provider";
+import { LatexCompileProvider, useLatexCompileContext } from "./latex/latex-compile-context";
 import { RoomRail } from "./room-rail";
 import { RoomSidebar, RoomSidebarTrigger } from "./room-sidebar";
 import { ShareDialog } from "./share-dialog";
@@ -56,7 +57,31 @@ function PresenceStack() {
   );
 }
 
-function RoomShellInner() {
+/**
+ * Compiles the room's LaTeX sources to a local PDF preview (#27). The PDF is
+ * derived local state — never synced, never checkpointed — so each peer
+ * renders their own view of the shared sources.
+ */
+function RecompileButton({ onOpenPreview }: { onOpenPreview: () => void }) {
+  const compile = useLatexCompileContext();
+  const compiling = compile.phase === "compiling";
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => {
+        onOpenPreview();
+        void compile.recompile();
+      }}
+      disabled={compiling}
+      title="Compile the room's LaTeX sources to PDF, locally. The PDF is never synced."
+      className="h-7.5 shrink-0 rounded-sm px-2.5 text-[12.5px] text-muted-foreground"
+    >
+      {compiling ? "Compiling…" : "Recompile"}
+    </Button>
+  );
+}
+
+function RoomShellBody() {
   const { toggleSidebar } = useSidebar();
   const { runtime, checkpoints, createCheckpoint } = useRoom();
   const files = useProjectFiles();
@@ -77,6 +102,7 @@ function RoomShellInner() {
     ],
     [files, assets],
   );
+  const compile = useLatexCompileContext();
 
   const [openIds, setOpenIds] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -172,6 +198,11 @@ function RoomShellInner() {
     setActiveId(id);
     setRailPanel(null);
   }, [runtime, files]);
+
+  const openPreviewAndCompile = useCallback(() => {
+    setRailPanel("preview");
+    void compile.recompile();
+  }, [compile]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -275,6 +306,7 @@ function RoomShellInner() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            <RecompileButton onOpenPreview={() => setRailPanel("preview")} />
             <Button
               variant="ghost"
               onClick={createCheckpoint}
@@ -345,8 +377,18 @@ function RoomShellInner() {
         onToggleSidebar={toggleSidebar}
         onCreateCheckpoint={createCheckpoint}
         canCheckpoint={runtime !== null}
+        onRecompile={openPreviewAndCompile}
+        canRecompile={runtime !== null}
       />
     </>
+  );
+}
+
+function RoomShellInner() {
+  return (
+    <LatexCompileProvider>
+      <RoomShellBody />
+    </LatexCompileProvider>
   );
 }
 

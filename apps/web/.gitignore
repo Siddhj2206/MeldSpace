@@ -64,3 +64,8 @@ dev-dist
 
 # Excalidraw self-hosted assets (fonts/locales for the board surface)
 !/public/dist/
+
+# BusyTeX engine assets (#27): 100MB+ binaries provisioned locally per
+# `public/core/README.md`. Never committed; served from `public/` in dev.
+public/core/*
+!public/core/README.md

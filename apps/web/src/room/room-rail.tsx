@@ -10,11 +10,13 @@ import type { RailPanel } from "./command-palette";
 import { useCoordinator } from "./coordinator";
 import { HistoryPanel } from "./history-panel";
 import { initials } from "./identity";
+import { LatexPreviewPanel } from "./latex/latex-preview";
 import { useRoom } from "./room-provider";
 import { useRoomRoster } from "./roster";
 
 const PANELS: { id: RailPanel; label: string }[] = [
   { id: "details", label: "Details" },
+  { id: "preview", label: "Preview" },
   { id: "people", label: "People" },
   { id: "history", label: "History" },
 ];
@@ -166,6 +168,8 @@ export function RoomRail({
               </div>
             </div>
           ) : null}
+
+          {panel === "preview" ? <LatexPreviewPanel /> : null}
 
           {panel === "people" ? (
             <div className="flex flex-col gap-2">
