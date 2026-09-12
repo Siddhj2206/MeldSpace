@@ -14,6 +14,9 @@ function createQueryClient() {
   return new QueryClient({
     queryCache: new QueryCache({
       onError: (error, query) => {
+        // Some queries are expected to fail (e.g. room metadata for a local
+        // or offline room) and opt out of the global toast.
+        if (query.meta?.suppressErrorToast) return;
         toast.error(error.message, {
           action: {
             label: "retry",
