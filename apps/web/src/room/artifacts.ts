@@ -1,3 +1,7 @@
+import type * as Y from "yjs";
+
+import type { RoomDocument } from "./documents";
+
 /**
  * Artifact model for the room shell.
  *
@@ -17,12 +21,14 @@ export type Artifact = {
   kind: ArtifactKind;
   surface: SurfaceId;
   title: string;
-  /** Secondary line, e.g. the role/state of a contributor. */
+  /** Secondary line, e.g. the surface/format. */
   subtitle?: string;
   /** Identity hue of an editor present on this artifact, if any. */
   presentColor?: string;
   /** Identifier the surface reads (e.g. the Y.Text key). */
   sourceKey: string;
+  /** The shared text for document artifacts. */
+  text?: Y.Text;
 };
 
 export const ARTIFACT_GROUPS: readonly { kind: ArtifactKind; label: string }[] = [
@@ -32,15 +38,18 @@ export const ARTIFACT_GROUPS: readonly { kind: ArtifactKind; label: string }[] =
   { kind: "comment", label: "COMMENTS" },
 ] as const;
 
-/** The single text document from #2, bound to the `content` Y.Text. */
-export const DOCUMENT_ARTIFACT: Artifact = {
-  id: "document:content",
-  kind: "document",
-  surface: "document",
-  title: "notes.md",
-  subtitle: "Markdown",
-  sourceKey: "content",
-};
+/** Project the room's documents into shell artifacts. */
+export function documentArtifacts(documents: readonly RoomDocument[]): Artifact[] {
+  return documents.map((document) => ({
+    id: document.id,
+    kind: "document",
+    surface: "document",
+    title: document.title,
+    subtitle: "Markdown",
+    sourceKey: document.id,
+    text: document.text,
+  }));
+}
 
 export function groupArtifacts(
   artifacts: readonly Artifact[],

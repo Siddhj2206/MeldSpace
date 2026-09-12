@@ -1,11 +1,12 @@
 import { Button } from "@MeldSpace/ui/components/button";
 import { SidebarProvider, useSidebar } from "@MeldSpace/ui/components/sidebar";
 import { cn } from "@MeldSpace/ui/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Artifact } from "./artifacts";
-import { DOCUMENT_ARTIFACT } from "./artifacts";
+import { documentArtifacts } from "./artifacts";
 import { CommandPalette, type RailPanel } from "./command-palette";
+import { createDocument, useRoomDocuments } from "./documents";
 import {
   BoardIcon,
   CloseIcon,
@@ -55,9 +56,12 @@ function PresenceStack() {
 
 function RoomShellInner() {
   const { toggleSidebar } = useSidebar();
-  const artifacts = useMemo<Artifact[]>(() => [DOCUMENT_ARTIFACT], []);
-  const [openIds, setOpenIds] = useState<string[]>([DOCUMENT_ARTIFACT.id]);
-  const [activeId, setActiveId] = useState<string | null>(DOCUMENT_ARTIFACT.id);
+  const { runtime } = useRoom();
+  const documents = useRoomDocuments();
+  const artifacts = useMemo(() => documentArtifacts(documents), [documents]);
+
+  const [openIds, setOpenIds] = useState<string[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [railPanel, setRailPanel] = useState<RailPanel | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -68,6 +72,19 @@ function RoomShellInner() {
   );
   const activeArtifact =
     openArtifacts.find((artifact) => artifact.id === activeId) ?? openArtifacts[0] ?? null;
+
+  // Keep tabs pointing at documents that still exist, and open the first
+  // document once the room's text has loaded.
+  useEffect(() => {
+    if (artifacts.length === 0) return;
+    setOpenIds((ids) => {
+      const valid = ids.filter((id) => artifacts.some((artifact) => artifact.id === id));
+      return valid.length > 0 ? valid : [artifacts[0]!.id];
+    });
+    setActiveId((id) =>
+      id && artifacts.some((artifact) => artifact.id === id) ? id : (artifacts[0]?.id ?? null),
+    );
+  }, [artifacts]);
 
   const openArtifact = (artifact: Artifact) => {
     setOpenIds((ids) => (ids.includes(artifact.id) ? ids : [...ids, artifact.id]));
@@ -87,6 +104,14 @@ function RoomShellInner() {
     });
   };
 
+  const createArtifact = useCallback(() => {
+    if (!runtime) return;
+    const document = createDocument(runtime.doc, `Untitled ${documents.length + 1}.md`);
+    setOpenIds((ids) => [...ids, document.id]);
+    setActiveId(document.id);
+    setRailPanel(null);
+  }, [runtime, documents.length]);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey)) return;
@@ -99,9 +124,13 @@ function RoomShellInner() {
           event.preventDefault();
           setShareOpen(true);
           break;
+        case "n":
+          event.preventDefault();
+          createArtifact();
+          break;
         case "1":
           event.preventDefault();
-          setActiveId(DOCUMENT_ARTIFACT.id);
+          setActiveId((id) => id ?? artifacts[0]?.id ?? null);
           break;
         case "2":
           event.preventDefault();
@@ -121,7 +150,7 @@ function RoomShellInner() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [artifacts, createArtifact]);
 
   return (
     <>
@@ -129,6 +158,7 @@ function RoomShellInner() {
         artifacts={artifacts}
         activeId={activeArtifact?.id ?? null}
         onOpenArtifact={openArtifact}
+        onCreateArtifact={createArtifact}
         onOpenPalette={() => setPaletteOpen(true)}
         onOpenShare={() => setShareOpen(true)}
       />
@@ -137,7 +167,7 @@ function RoomShellInner() {
         <header className="flex h-11.5 shrink-0 items-center gap-0.75 border-b border-border px-2.5">
           <RoomSidebarTrigger className="size-7 rounded-sm" />
 
-          <div className="flex min-w-0 flex-1 items-center gap-0.75">
+          <div className="flex min-w-0 flex-1 items-center gap-0.75 overflow-x-auto">
             {openArtifacts.map((artifact) => {
               const Icon = KIND_ICON[artifact.kind];
               const isActive = artifact.id === activeArtifact?.id;
@@ -174,9 +204,9 @@ function RoomShellInner() {
 
             <button
               type="button"
-              disabled
-              title="New artifacts arrive with #7 · #9 · #11"
-              className="flex size-7 shrink-0 items-center justify-center rounded-sm text-subtle-foreground opacity-60"
+              title="New document (⌘N)"
+              onClick={createArtifact}
+              className="flex size-7 shrink-0 items-center justify-center rounded-sm text-subtle-foreground hover:bg-surface-2 hover:text-foreground"
             >
               <PlusIcon />
             </button>
@@ -205,7 +235,7 @@ function RoomShellInner() {
                   No artifact open
                 </span>
                 <p className="max-w-xs text-body-sm text-muted-foreground">
-                  Pick an artifact from the sidebar, or press ⌘K.
+                  Pick an artifact from the sidebar, or press ⌘N for a new document.
                 </p>
               </div>
             )}
@@ -226,7 +256,8 @@ function RoomShellInner() {
       <CommandPalette
         open={paletteOpen}
         onOpenChange={setPaletteOpen}
-        onOpenSurface={() => setActiveId(DOCUMENT_ARTIFACT.id)}
+        onOpenDocument={() => setActiveId(activeArtifact?.id ?? artifacts[0]?.id ?? null)}
+        onNewDocument={createArtifact}
         onOpenPanel={setRailPanel}
         onShare={() => setShareOpen(true)}
         onToggleSidebar={toggleSidebar}

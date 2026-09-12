@@ -72,12 +72,14 @@ export function RoomSidebar({
   artifacts,
   activeId,
   onOpenArtifact,
+  onCreateArtifact,
   onOpenPalette,
   onOpenShare,
 }: {
   artifacts: Artifact[];
   activeId: string | null;
   onOpenArtifact: (artifact: Artifact) => void;
+  onCreateArtifact: () => void;
   onOpenPalette: () => void;
   onOpenShare: () => void;
 }) {
@@ -207,12 +209,12 @@ export function RoomSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  disabled
-                  tooltip="New artifacts arrive with #7 · #9 · #11"
-                  className="h-8 gap-2 rounded-sm px-2 text-body-sm text-subtle-foreground"
+                  tooltip="New document (⌘N)"
+                  onClick={onCreateArtifact}
+                  className="h-8 gap-2 rounded-sm px-2 text-body-sm text-subtle-foreground hover:text-foreground"
                 >
                   <PlusIcon />
-                  <span className="flex-1">New artifact</span>
+                  <span className="flex-1">New document</span>
                   <span className="font-mono text-[9.5px] text-subtle-foreground">⌘N</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>

@@ -17,6 +17,7 @@ import {
   HistoryIcon,
   PanelLeftIcon,
   PeopleIcon,
+  PlusIcon,
   ShareIcon,
 } from "./icons";
 import { useRoom } from "./room-provider";
@@ -34,7 +35,8 @@ function Key({ children }: { children: React.ReactNode }) {
 export function CommandPalette({
   open,
   onOpenChange,
-  onOpenSurface,
+  onOpenDocument,
+  onNewDocument,
   onOpenPanel,
   onShare,
   onToggleSidebar,
@@ -42,7 +44,8 @@ export function CommandPalette({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onOpenSurface: () => void;
+  onOpenDocument: () => void;
+  onNewDocument: () => void;
   onOpenPanel: (panel: RailPanel) => void;
   onShare: () => void;
   onToggleSidebar: () => void;
@@ -73,7 +76,7 @@ export function CommandPalette({
         <CommandEmpty>Nothing matches “{query}”.</CommandEmpty>
 
         <CommandGroup heading="Go to">
-          <CommandItem value="editor document" onSelect={() => run(onOpenSurface)}>
+          <CommandItem value="editor document" onSelect={() => run(onOpenDocument)}>
             <DocumentIcon />
             Editor
             <CommandShortcut>
@@ -109,6 +112,13 @@ export function CommandPalette({
         <CommandSeparator />
 
         <CommandGroup heading="Actions">
+          <CommandItem value="new document" onSelect={() => run(onNewDocument)}>
+            <PlusIcon />
+            New document
+            <CommandShortcut>
+              <Key>⌘N</Key>
+            </CommandShortcut>
+          </CommandItem>
           <CommandItem value="share room invite" onSelect={() => run(onShare)}>
             <ShareIcon />
             Share room
