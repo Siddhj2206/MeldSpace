@@ -131,9 +131,7 @@ function buildDecorations(view: EditorView): DecorationSet {
           break;
         }
         case "LinkMark":
-        case "LinkLabel":
-        case "URL":
-        case "LinkTitle": {
+        case "URL": {
           if (!reveals(from, to)) ranges.push(Decoration.replace({}).range(from, to));
           break;
         }
