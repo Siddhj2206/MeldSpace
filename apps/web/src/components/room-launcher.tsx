@@ -8,15 +8,17 @@ export default function RoomLauncher() {
   const navigate = useNavigate();
   const [code, setCode] = useState("");
 
-  const createRoom = () => {
-    const id = crypto.randomUUID().slice(0, 8);
+  const openRoom = (id: string) => {
     void navigate({ to: "/room/$roomId", params: { roomId: id } });
+  };
+
+  const createRoom = () => {
+    openRoom(crypto.randomUUID().slice(0, 8));
   };
 
   const joinRoom = () => {
     const id = code.trim();
-    if (!id) return;
-    void navigate({ to: "/room/$roomId", params: { roomId: id } });
+    if (id) openRoom(id);
   };
 
   return (

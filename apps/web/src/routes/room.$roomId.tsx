@@ -10,15 +10,20 @@ import { yCollab, yUndoManagerKeymap } from "y-codemirror.next";
 import { IndexeddbPersistence } from "y-indexeddb";
 import { WebrtcProvider } from "y-webrtc";
 
+import { ENV } from "@/env";
+
 export const Route = createFileRoute("/room/$roomId")({
   ssr: false,
   component: RoomComponent,
 });
 
-type Peer = {
-  clientId: number;
+type PresenceUser = {
   name: string;
   color: string;
+};
+
+type Peer = PresenceUser & {
+  clientId: number;
 };
 
 function colorFor(id: number) {
@@ -26,10 +31,9 @@ function colorFor(id: number) {
 }
 
 function signalingUrl() {
-  const override = import.meta.env.VITE_SIGNALING_URL as string | undefined;
-  if (override) return override;
-  if (typeof window === "undefined") return "ws://localhost:4444";
-  return `ws://${window.location.hostname}:4444`;
+  if (ENV.VITE_SIGNALING_URL) return ENV.VITE_SIGNALING_URL;
+  const scheme = window.location.protocol === "https:" ? "wss" : "ws";
+  return `${scheme}://${window.location.hostname}:4444`;
 }
 
 function RoomComponent() {
@@ -49,18 +53,22 @@ function RoomComponent() {
     const provider = new WebrtcProvider(roomId, doc, {
       signaling: [signalingUrl()],
       maxConns: 20,
+      // Same-browser tabs sync over BroadcastChannel; this is the R1 fallback
+      // when WebRTC signaling isn't reachable. y-webrtc defaults to true.
+      filterBcConns: true,
     });
 
     const awareness = provider.awareness;
-    awareness.setLocalStateField("user", {
+    const me: PresenceUser = {
       name: `peer-${String(doc.clientID).slice(-4)}`,
       color: colorFor(doc.clientID),
-    });
+    };
+    awareness.setLocalStateField("user", me);
 
     const refreshPeers = () => {
       setPeers(
         Array.from(awareness.getStates().entries()).map(([clientId, state]) => {
-          const user = (state as { user?: { name?: string; color?: string } }).user;
+          const user = (state as { user?: PresenceUser }).user;
           return {
             clientId,
             name: user?.name ?? String(clientId),

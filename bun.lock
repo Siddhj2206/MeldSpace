@@ -40,7 +40,7 @@
     "apps/signaling": {
       "name": "signaling",
       "dependencies": {
-        "y-webrtc": "^10.3.0",
+        "y-webrtc": "10.3.0",
       },
     },
     "apps/web": {
@@ -76,7 +76,7 @@
         "y-codemirror.next": "^0.3.6",
         "y-indexeddb": "^9.0.12",
         "y-protocols": "^1.0.7",
-        "y-webrtc": "^10.3.0",
+        "y-webrtc": "10.3.0",
         "yjs": "^13.6.27",
         "zod": "catalog:",
       },

@@ -1,3 +1,5 @@
+import { ENV } from "@/env";
+
 /**
  * Base URL of the API server.
  *
@@ -10,5 +12,5 @@ export function getServerBaseUrl(): string {
   if (typeof window !== "undefined") {
     return window.location.origin;
   }
-  return (import.meta.env.VITE_SERVER_URL as string | undefined) ?? "http://localhost:3000";
+  return ENV.VITE_SERVER_URL || "http://localhost:3000";
 }

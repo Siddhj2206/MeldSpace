@@ -4,7 +4,7 @@
 - **Access date for all sources:** 2026-09-12
 - **Scope:** Which live-sync engine + transport + durability stack lets a 2-person, 36-hour
   hackathon ship a browser-first room where a peer can go fully offline, edit locally, then
-  reconnect and automatically converge — with a control plane that is *not* the source of truth.
+  reconnect and automatically converge — with a control plane that is _not_ the source of truth.
 - **Method:** primary sources only — official docs, READMEs, source code, npm registry,
   GitHub issues. Where a claim is inference rather than a documented fact it is marked
   **[inference]**.
@@ -22,8 +22,8 @@ log.**
 
 tldraw sync is a server-authoritative WebSocket engine with an open, unassigned "offline support"
 issue and no official P2P path; it fails the "server is not the source of truth" requirement and
-cannot deliver the core demo. Yjs is the only stack here with mature editor bindings *and* a
-genuine CRDT merge guarantee *and* a working P2P transport *and* browser offline persistence — all
+cannot deliver the core demo. Yjs is the only stack here with mature editor bindings _and_ a
+genuine CRDT merge guarantee _and_ a working P2P transport _and_ browser offline persistence — all
 maintained enough to stand on in 36 hours.
 
 ---
@@ -50,7 +50,7 @@ downloads. (`npm i @tldraw/sync-core`)
 
 **Does it support true offline editing + automatic merge on reconnect? Partially, and not durably.**
 
-- The client *does* keep editing while disconnected: `push()` squashes changes into
+- The client _does_ keep editing while disconnected: `push()` squashes changes into
   `speculativeChanges` and returns early when `isConnectedToRoom` is false. On reconnect,
   `didReconnect()` rebases speculative changes onto the server diff and re-pushes them.
   (`TLSyncClient.ts`)
@@ -65,7 +65,7 @@ downloads. (`npm i @tldraw/sync-core`)
 - tldraw's own offline desktop product states it "does not currently merge changes made to an open
   file by another program, sync client, Git operation, or computer."
   ([tldraw-offline README](https://github.com/tldraw/tldraw-offline))
-- tldraw *does* have independent local persistence (`persistenceKey` → IndexedDB), but the docs
+- tldraw _does_ have independent local persistence (`persistenceKey` → IndexedDB), but the docs
   present persistence and sync as separate concerns, and there is no documented path that feeds
   IndexedDB-restored local edits into a reconnecting sync client. **[inference]**
   ([tldraw Persistence](https://tldraw.dev/docs/persistence))
@@ -148,7 +148,7 @@ plumbing both the product doc and this research say to avoid.
   ([y-webrtc README](https://github.com/yjs/y-webrtc))
 
 **Maintenance caveat (important):** npm shows `y-webrtc@10.3.0`, **last published 3 years ago**,
-with ~86.4k weekly downloads. It is stable and ubiquitous, but effectively frozen. Its *default*
+with ~86.4k weekly downloads. It is stable and ubiquitous, but effectively frozen. Its _default_
 signaling list includes two dead Heroku endpoints; only `wss://signaling.yjs.dev` is plausibly
 alive. **Self-host signaling and pin the version.**
 ([npm y-webrtc](https://www.npmjs.com/package/y-webrtc))
@@ -177,7 +177,7 @@ cross the wire. **[inference from Yjs sync protocol; consistent with the demo re
 - **Yjs v14 / `@y/*` scope is in development and unstable.** Both `y-codemirror.next` and
   `y-websocket` READMEs say most users should stay on Yjs v13 with the current packages.
 - **Fallback if y-webrtc misbehaves:** `y-websocket` (central relay). Note its server holds an
-  in-memory `Y.Doc`, so it *can* be a source of truth; for MeldSpace you'd run a dumb relay or
+  in-memory `Y.Doc`, so it _can_ be a source of truth; for MeldSpace you'd run a dumb relay or
   treat it only as rendezvous so peers still hold the authoritative replicas. The y-websocket
   README itself recommends YHub/Hocuspocus for production scaling.
   ([y-websocket](https://github.com/yjs/y-websocket))
@@ -255,7 +255,7 @@ work. It supports `init/add/commit/log/merge/branch/push/pull/readObject/writeOb
 There is no maintained browser P2P-git example. Evidence is limited to a 2020 HN comment about
 "using WebRTC to mesh up clients and using Git in a truly distributed fashion" and an open issue
 requesting pluggable remotes ("not using dat only WebRTC to enable P2P git cloning") — i.e. it
-was *desired*, not built.
+was _desired_, not built.
 ([HN 2020](https://news.ycombinator.com/item?id=22420231),
 [isomorphic-git#97](https://github.com/isomorphic-git/isomorphic-git/issues/97))
 Object transfer-by-SHA (have/want negotiation, packfiles) would be a research project on top of an
@@ -310,20 +310,20 @@ only needed at larger scale or as a connectivity fallback (`y-websocket`). ([y-w
 
 ### Safest stack for the 36-hour, offline-converging P2P room
 
-| Layer | Choice | Why |
-|---|---|---|
-| Shared state | **Yjs v13** (`Y.Doc`) | CRDT merge is the only thing that guarantees offline converge without a server arbiter |
-| Transport | **`y-webrtc` mesh**, self-hosted signaling; `y-websocket` relay as fallback behind an adapter | Signaling-only P2P; server never owns content; mesh is perfect at 3–4 peers |
-| Offline persistence | **`y-indexeddb`**, gate UI on the `synced` event | Survives reload/crash while offline; documented offline support |
-| Hero surface | **CodeMirror 6 + `y-codemirror.next`** (or TipTap + `y-prosemirror`) | Maintained binding, smallest surface for a bulletproof offline-converge demo |
-| Canvas (if kept) | **Minimal Yjs-native canvas** (shapes as `Y.Map`s) — *not* tldraw | You control presence/undo/history; no serializer or broken binding |
-| History | **Content-addressed checkpoint log** in Yjs + IndexedDB; isomorphic-git only as export | 90% of git's demo value, 10% of the risk |
-| Control plane | Auth + room metadata + **signaling** only | Matches MeldSpace's stated architecture |
+| Layer               | Choice                                                                                        | Why                                                                                    |
+| ------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Shared state        | **Yjs v13** (`Y.Doc`)                                                                         | CRDT merge is the only thing that guarantees offline converge without a server arbiter |
+| Transport           | **`y-webrtc` mesh**, self-hosted signaling; `y-websocket` relay as fallback behind an adapter | Signaling-only P2P; server never owns content; mesh is perfect at 3–4 peers            |
+| Offline persistence | **`y-indexeddb`**, gate UI on the `synced` event                                              | Survives reload/crash while offline; documented offline support                        |
+| Hero surface        | **CodeMirror 6 + `y-codemirror.next`** (or TipTap + `y-prosemirror`)                          | Maintained binding, smallest surface for a bulletproof offline-converge demo           |
+| Canvas (if kept)    | **Minimal Yjs-native canvas** (shapes as `Y.Map`s) — _not_ tldraw                             | You control presence/undo/history; no serializer or broken binding                     |
+| History             | **Content-addressed checkpoint log** in Yjs + IndexedDB; isomorphic-git only as export        | 90% of git's demo value, 10% of the risk                                               |
+| Control plane       | Auth + room metadata + **signaling** only                                                     | Matches MeldSpace's stated architecture                                                |
 
 ### Make the hero **text**, not canvas
 
 Text is where the offline story is provably safe: `y-codemirror.next` + `y-webrtc` +
-`y-indexeddb` is a known-working combination, and Yjs's merge is what the demo is *about*. Canvas is
+`y-indexeddb` is a known-working combination, and Yjs's merge is what the demo is _about_. Canvas is
 where every option forces you into either a server-authoritative engine (tldraw sync) or a custom
 binding with breakable presence/undo (tldraw+Yjs/Loro). If canvas must be the hero, build a tiny
 Yjs-native canvas — do not spend the hackathon fighting a tldraw binding.
@@ -354,7 +354,7 @@ Yjs-native canvas — do not spend the hackathon fighting a tldraw binding.
 - **`y-webrtc` is unmaintained-by-recency** (last npm publish 3 years ago). Pin the version and
   self-host signaling; know the `y-websocket` fallback.
 - **Yjs v14 / `@y/*`** is unstable and in development; stay on Yjs v13 with the current bindings.
-- **Signaling availability** is a single point of *discovery*, not of truth — run it in the control
+- **Signaling availability** is a single point of _discovery_, not of truth — run it in the control
   plane and keep a localhost fallback for the demo.
 - **TURN** is venue-dependent; test on the actual network before the demo.
 
