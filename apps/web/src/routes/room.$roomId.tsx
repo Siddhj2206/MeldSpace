@@ -36,24 +36,110 @@ function signalingUrl() {
   return `${scheme}://${window.location.hostname}:4444`;
 }
 
+// Canonical vocabulary (CONTEXT.md): Local, Queued, Converged. "Reconnecting"
+// and "Live" are the design's transient states between those.
+type SyncTone = "muted" | "signal" | "success";
+
+type SyncStatus = {
+  label: "Loading…" | "Local" | "Queued" | "Reconnecting" | "Live" | "Converged";
+  tone: SyncTone;
+  detail: string;
+};
+
+const toneClass: Record<SyncTone, string> = {
+  muted: "bg-muted-foreground",
+  signal: "bg-signal",
+  success: "bg-success",
+};
+
+function SyncStatusPill({ status }: { status: SyncStatus }) {
+  return (
+    <span
+      className="flex items-center gap-2"
+      role="status"
+      aria-live="polite"
+      title={status.detail}
+    >
+      <span className={`h-2 w-2 rounded-full ${toneClass[status.tone]}`} />
+      {status.label}
+      <span className="sr-only">{status.detail}</span>
+    </span>
+  );
+}
+
+type SyncInputs = {
+  persisted: boolean;
+  isOnline: boolean;
+  converged: boolean;
+  queued: number;
+  live: boolean;
+};
+
+/**
+ * One derivation for the whole pill so the label, lamp and detail can never
+ * disagree with each other. `queued` is a count of local edits waiting to be
+ * shared; `converged` is only ever true when a real peer holds our state.
+ */
+function deriveSyncStatus({
+  persisted,
+  isOnline,
+  converged,
+  queued,
+  live,
+}: SyncInputs): SyncStatus {
+  if (!persisted) {
+    return { label: "Loading…", tone: "muted", detail: "Reading this room from local storage." };
+  }
+  if (!isOnline) {
+    return queued > 0
+      ? {
+          label: "Queued",
+          tone: "signal",
+          detail: `${queued} local ${queued === 1 ? "change" : "changes"} waiting to converge.`,
+        }
+      : { label: "Local", tone: "muted", detail: "Offline. Edits stay on this device." };
+  }
+  if (!converged) {
+    return { label: "Reconnecting", tone: "signal", detail: "Looking for peers to converge with." };
+  }
+  if (live) {
+    return { label: "Live", tone: "signal", detail: "Edits are moving between peers right now." };
+  }
+  return {
+    label: "Converged",
+    tone: "success",
+    detail: "You and your peers share the same room state.",
+  };
+}
+
+/**
+ * y-webrtc emits `synced` only when the state *changes*, and treats "no WebRTC
+ * connections" as synced. Read the room's own connections instead so we never
+ * report converged before the handshake or stall on a missed transition.
+ * BroadcastChannel peers apply updates inline and never enter `webrtcConns`.
+ */
+function peersHaveOurState(provider: WebrtcProvider): boolean {
+  const room = provider.room;
+  if (!room) return false;
+  if (room.webrtcConns.size === 0) return room.bcConns.size > 0;
+  return Array.from(room.webrtcConns.values()).every((conn) => conn.synced);
+}
+
 function RoomComponent() {
   const { roomId } = Route.useParams();
   const editorHost = useRef<HTMLDivElement>(null);
   const [peers, setPeers] = useState<Peer[]>([]);
-  // `provider.connected` only reflects intent (connect() was called), not the
-  // network — so sync state is derived from the browser online flag, the
-  // mesh peer list and the y-webrtc `synced` handshake below.
   const [isOnline, setIsOnline] = useState(
     () => typeof navigator === "undefined" || navigator.onLine,
   );
   const [persisted, setPersisted] = useState(false);
-  const [synced, setSynced] = useState(false);
-  const [meshPeers, setMeshPeers] = useState(0);
-  // Local updates made while offline. Cleared when the mesh reports a fresh
-  // `synced` handshake while online — i.e. the queue actually converged.
+  const [converged, setConverged] = useState(false);
   const [queued, setQueued] = useState(0);
+  const [live, setLive] = useState(false);
   const onlineRef = useRef(isOnline);
+  const convergedRef = useRef(converged);
   onlineRef.current = isOnline;
+  convergedRef.current = converged;
 
   useEffect(() => {
     const goOnline = () => setIsOnline(true);
@@ -70,9 +156,8 @@ function RoomComponent() {
     if (!editorHost.current) return;
 
     const doc = new Y.Doc();
-    // Offline durability: every update is appended to IndexedDB, so edits
-    // made with the network pulled survive a reload and are still here to
-    // converge on reconnect. Acceptance 1 of #5.
+    // Offline durability: every local update is appended to IndexedDB, so edits
+    // made with the network pulled survive a reload and converge on reconnect.
     const persistence = new IndexeddbPersistence(`meldspace-${roomId}`, doc);
     persistence.once("synced", () => setPersisted(true));
 
@@ -86,25 +171,39 @@ function RoomComponent() {
 
     // No manual reconnect step: y-webrtc keeps `shouldConnect` true across an
     // outage, re-establishes signaling on its own, and re-runs the Yjs sync
-    // handshake (state vectors) with each peer — only missing updates cross
-    // the wire, and the CRDT merge converges both replicas. Acceptance 2 of #5.
-    const onSynced = (event: { synced: boolean }) => {
-      setSynced(event.synced);
-      if (event.synced && onlineRef.current) setQueued(0);
+    // handshake (state vectors) with each peer — only missing updates cross the
+    // wire, and the CRDT merge converges both replicas.
+    const refreshConvergence = () => {
+      const next = onlineRef.current && peersHaveOurState(provider);
+      setConverged(next);
+      // Every reachable peer holding our state means nothing is queued.
+      if (next) setQueued(0);
     };
-    provider.on("synced", onSynced);
 
-    const onPeers = (event: { webrtcPeers: string[]; bcPeers: string[] }) => {
-      setMeshPeers(event.webrtcPeers.length + event.bcPeers.length);
+    let liveTimer: ReturnType<typeof setTimeout> | undefined;
+    const markLive = () => {
+      setLive(true);
+      clearTimeout(liveTimer);
+      liveTimer = setTimeout(() => setLive(false), 1500);
     };
-    provider.on("peers", onPeers);
 
-    const onUpdate = () => {
-      // Count edits made while the browser reports offline; while online the
-      // doc streams updates to connected peers as they happen.
-      if (!onlineRef.current) setQueued((n) => n + 1);
+    const onUpdate = (_update: Uint8Array, _origin: unknown, _doc: Y.Doc, tx: Y.Transaction) => {
+      refreshConvergence();
+      // Only edits made on this device count as queued. IndexedDB replay and
+      // remote updates arrive with `transaction.local === false`, so an offline
+      // reload or a sibling tab can no longer inflate the count.
+      if (tx.local && !convergedRef.current) setQueued((n) => n + 1);
+      if (tx.local && convergedRef.current && onlineRef.current) markLive();
     };
     doc.on("update", onUpdate);
+
+    provider.on("synced", refreshConvergence);
+    provider.on("peers", refreshConvergence);
+    // `status` only reflects `shouldConnect`, so it is a refresh trigger, never
+    // something we show. The poll covers transitions y-webrtc does not emit.
+    provider.on("status", refreshConvergence);
+    const convergencePoll = setInterval(refreshConvergence, 1000);
+    refreshConvergence();
 
     const awareness = provider.awareness;
     const me: PresenceUser = {
@@ -147,9 +246,12 @@ function RoomComponent() {
 
     return () => {
       awareness.off("change", refreshPeers);
-      provider.off("synced", onSynced);
-      provider.off("peers", onPeers);
+      provider.off("synced", refreshConvergence);
+      provider.off("peers", refreshConvergence);
+      provider.off("status", refreshConvergence);
       doc.off("update", onUpdate);
+      clearInterval(convergencePoll);
+      clearTimeout(liveTimer);
       view.destroy();
       provider.destroy();
       persistence.destroy();
@@ -157,41 +259,17 @@ function RoomComponent() {
     };
   }, [roomId]);
 
-  // Canonical vocabulary (CONTEXT.md): Local / Queued / Converged.
-  const sync: { label: string; dot: string } = !persisted
-    ? { label: "Loading…", dot: "bg-muted-foreground" }
-    : !isOnline
-      ? queued > 0
-        ? { label: `Queued · ${queued}`, dot: "bg-amber-500" }
-        : { label: "Local", dot: "bg-amber-500" }
-      : meshPeers === 0
-        ? { label: "Local", dot: "bg-yellow-500" }
-        : !synced
-          ? { label: "Connecting…", dot: "bg-blue-500" }
-          : { label: "Converged", dot: "bg-green-500" };
+  const status = deriveSyncStatus({ persisted, isOnline, converged, queued, live });
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-6">
-      {!isOnline ? (
-        <div
-          role="status"
-          className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm"
-        >
-          You’re offline — edits stay on this device and converge automatically on reconnect.
-          {queued > 0 ? ` ${queued} change${queued === 1 ? "" : "s"} queued.` : ""}
-        </div>
-      ) : null}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Room</h1>
           <code className="text-muted-foreground text-sm">{roomId}</code>
         </div>
         <div className="flex items-center gap-4 text-sm">
-          <span className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${sync.dot}`} />
-            {sync.label}
-          </span>
-          <span className="text-muted-foreground">{persisted ? "saved locally" : "loading…"}</span>
+          <SyncStatusPill status={status} />
         </div>
       </div>
 
