@@ -6,7 +6,6 @@
     "build": "vite build",
     "serve": "vite preview",
     "dev": "vite dev",
-    "dev:host": "vite dev --host",
     "check-types": "vite build && tsc --noEmit",
     "env:generate": "varlock codegen"
   },
