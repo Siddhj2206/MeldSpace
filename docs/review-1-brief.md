@@ -52,9 +52,9 @@ A returning old owner carries a stale epoch and loses, which is exactly the Act 
 behaviour. "Who disconnected last" cannot do this, because peers have no shared clock and
 no shared record of disconnect order.
 
-One split still to settle: the map says the coordinator is presence-derived and never
-persisted, but the stale-owner rule needs a durable epoch. Proposed resolution — the epoch
-is durable CRDT state, while the current holder is presence-derived.
+Split, now decided: **the epoch is durable CRDT state; the holder is presence-derived.** The
+database stores neither. There is no owner. Canonical: `CONTEXT.md`; rationale:
+`docs/adr/0001-coordination-authority.md`.
 
 ## Why not just run a server
 
@@ -111,6 +111,4 @@ Invariant to hold everywhere: **the shared object must never require a central r
 
 - Offline reload (service worker) is not built.
 - The board spike (#14) has not run; the fallback is a Yjs-native board.
-- Owner versus coordinator vocabulary is not reconciled in one place; `CONTEXT.md` and
-  `docs/adr/` are not written yet.
 - The signalling green dot reflects signalling, not peer count.
