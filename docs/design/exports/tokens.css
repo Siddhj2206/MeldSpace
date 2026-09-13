@@ -1,0 +1,63 @@
+/* MeldSpace design tokens.
+ *
+ * Mirrors the Paper file "MeldSpace — Room Shell" (token hash ad523f07),
+ * exported 2026-09-12. The authoritative definitions for the running app are in
+ * packages/ui/src/styles/globals.css — keep the two in sync if either changes.
+ *
+ * Palette intent (from docs/research/2026-09-12-design-brief.md):
+ *   instrument black (background/surface) x one amber signal (#E0A23C) reserved
+ *   for live/active/focus. The eight --color-id-* hues belong to people only.
+ */
+
+:root {
+  /* surfaces + text */
+  --color-background: #0b0c0d;
+  --color-surface: #121316;
+  --color-surface-2: #191b1e;
+  --color-foreground: #ecedea;
+  --color-muted-foreground: #8b9096;
+  --color-subtle-foreground: #5c6167;
+  --color-border: rgb(255 255 255 / 9%);
+  --color-border-strong: rgb(255 255 255 / 16%);
+
+  /* primary action */
+  --color-primary: #ecedea;
+  --color-primary-foreground: #0b0c0d;
+
+  /* state signal */
+  --color-signal: #e0a23c;
+  --color-success: #5fbf8a;
+  --color-danger: #e0564b;
+
+  /* identity roster — people only, never chrome */
+  --color-id-1: #e0645c;
+  --color-id-2: #d98a3a;
+  --color-id-3: #7fb46b;
+  --color-id-4: #4fb3a5;
+  --color-id-5: #5c8fe0;
+  --color-id-6: #9b7be0;
+  --color-id-7: #d472b0;
+  --color-id-8: #c9a23c;
+
+  /* type */
+  --font-sans: Inter;
+  --font-mono: "JetBrains Mono";
+  --text-eyebrow: 11px;
+  --text-micro: 12px;
+  --text-body-sm: 13px;
+  --text-body: 15px;
+  --text-title-3: 17px;
+  --text-title-2: 20px;
+  --text-title-1: 24px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --tracking-tight: -0.02em;
+  --tracking-eyebrow: 0.06em;
+  --leading-body: 24px;
+
+  /* radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+}
