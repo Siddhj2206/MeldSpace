@@ -19,6 +19,7 @@ import { HistoryStore, type CheckpointMeta } from "@/lib/history-store";
 import { useTRPC } from "@/utils/trpc";
 
 import { identityColor, initials } from "./identity";
+import { ensureProject } from "./project/migrate";
 import { readRoomContent } from "./room-content";
 import { deriveRoomStatus, type RoomStatus } from "./room-status";
 
@@ -214,7 +215,14 @@ export function RoomProvider({
     setQueued(0);
     setMesh({ webrtc: 0, bc: 0 });
 
-    const onPersisted = () => setPersisted(true);
+    let disposed = false;
+    const onPersisted = () => {
+      if (disposed) return;
+      setPersisted(true);
+      // Migrate once IndexedDB has loaded, so a legacy room's `content` is
+      // present before we decide whether to move it into `main.tex`.
+      ensureProject(doc);
+    };
     const onSynced = (event: { synced: boolean }) => {
       setSynced(event.synced);
       // Only clear the queue on a fresh handshake while actually online; a
@@ -229,11 +237,14 @@ export function RoomProvider({
     };
 
     persistence.once("synced", onPersisted);
+    // `once` can miss a store that finished loading before this effect ran.
+    if (persistence.synced) onPersisted();
     provider.on("synced", onSynced);
     provider.on("peers", onPeers);
     doc.on("update", onUpdate);
 
     return () => {
+      disposed = true;
       persistence.off("synced", onPersisted);
       provider.off("synced", onSynced);
       provider.off("peers", onPeers);
