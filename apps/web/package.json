@@ -37,6 +37,7 @@
     "react-dom": "catalog:",
     "sonner": "catalog:",
     "tailwindcss": "catalog:",
+    "texlyre-busytex": "^1.4.0",
     "uqr": "^0.1.3",
     "varlock": "catalog:",
     "workbox-window": "^7.4.1",

@@ -14,6 +14,7 @@ import {
   CheckIcon,
   DetailsIcon,
   DocumentIcon,
+  FileIcon,
   HistoryIcon,
   PanelLeftIcon,
   PeopleIcon,
@@ -22,7 +23,7 @@ import {
 } from "./icons";
 import { useRoom } from "./room-provider";
 
-export type RailPanel = "details" | "people" | "history";
+export type RailPanel = "details" | "preview" | "people" | "history";
 
 function Key({ children }: { children: React.ReactNode }) {
   return (
@@ -42,6 +43,8 @@ export function CommandPalette({
   onToggleSidebar,
   onCreateCheckpoint,
   canCheckpoint,
+  onRecompile,
+  canRecompile,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,6 +56,9 @@ export function CommandPalette({
   onCreateCheckpoint: () => void;
   /** True once the room runtime (and therefore the history store) is ready. */
   canCheckpoint: boolean;
+  onRecompile: () => void;
+  /** True once the room runtime (and therefore the compile engine) is ready. */
+  canRecompile: boolean;
 }) {
   const { peers } = useRoom();
   const [query, setQuery] = useState("");
@@ -137,6 +143,14 @@ export function CommandPalette({
             <CheckIcon />
             Create checkpoint
             {canCheckpoint ? null : <CommandShortcut>arrives #6</CommandShortcut>}
+          </CommandItem>
+          <CommandItem
+            value="recompile pdf latex preview"
+            disabled={!canRecompile}
+            onSelect={() => run(onRecompile)}
+          >
+            <FileIcon />
+            Recompile PDF
           </CommandItem>
           <CommandItem value="toggle sidebar" onSelect={() => run(onToggleSidebar)}>
             <PanelLeftIcon />

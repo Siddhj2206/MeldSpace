@@ -9,12 +9,30 @@ import type { Plugin } from "vite";
  */
 export const pwaWorkbox = {
   // The shell, its hashed assets, and the static icons/manifest. Control-plane
-  // calls (`/trpc`, `/api`) are never precached.
+  // calls (`/trpc`, `/api`) are never precached. The BusyTeX engine
+  // (`/core/busytex`, tens to hundreds of MB) is deliberately NOT precached —
+  // it arrives on first use via `runtimeCaching` below instead.
   globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest,woff,woff2}"],
   // Offline navigations (including `/room/<id>`) get the cached shell; the
   // router then boots and reads room state from IndexedDB.
   navigateFallback: "/_shell.html",
   navigateFallbackDenylist: [/^\/trpc/, /^\/api/, /^\/_serverFn/],
+  // First compile needs the network; after that the engine + TeX Live data are
+  // served from this cache, so Recompile works offline. The primary offline
+  // path stays Emscripten's own IndexedDB preload cache — this is
+  // belt-and-braces for reloads. `biber`'s on-demand wasm rides the same
+  // pattern, so it must be cached too before going offline.
+  runtimeCaching: [
+    {
+      urlPattern: /\/core\/busytex\/.*/i,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "meldspace-busytex",
+        expiration: { maxEntries: 32, maxAgeSeconds: 30 * 24 * 60 * 60 },
+        cacheableResponse: { statuses: [0, 200] },
+      },
+    },
+  ],
   cleanupOutdatedCaches: true,
   clientsClaim: true,
   skipWaiting: true,
