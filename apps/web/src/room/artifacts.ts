@@ -1,10 +1,6 @@
 import type * as Y from "yjs";
 
-<<<<<<< HEAD
 import type { AssetRef, FileKind, ProjectFile } from "./project/types";
-=======
-import type { FileKind, ProjectFile } from "./project/types";
->>>>>>> origin/master
 
 /**
  * Artifact model for the room shell.
@@ -36,11 +32,8 @@ export type Artifact = {
   /** Project-relative path for file artifacts (#25). */
   path?: string;
   fileKind?: FileKind;
-<<<<<<< HEAD
   /** Content hash for figure artifacts (#8/#9). */
   assetRef?: AssetRef;
-=======
->>>>>>> origin/master
 };
 
 export const ARTIFACT_GROUPS: readonly { kind: ArtifactKind; label: string }[] = [
@@ -72,7 +65,6 @@ export function projectFileArtifacts(files: readonly ProjectFile[]): Artifact[] 
     path: file.path,
     fileKind: file.kind,
     text: file.text,
-<<<<<<< HEAD
   }));
 }
 
@@ -93,8 +85,6 @@ export function projectAssetArtifacts(
     path,
     fileKind: "asset",
     assetRef: ref,
-=======
->>>>>>> origin/master
   }));
 }
 
