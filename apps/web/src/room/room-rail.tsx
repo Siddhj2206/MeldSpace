@@ -2,9 +2,13 @@ import { Button } from "@MeldSpace/ui/components/button";
 import { cn } from "@MeldSpace/ui/lib/utils";
 import { useState } from "react";
 
+import type { CheckpointMeta } from "@/lib/history-store";
+
 import type { Artifact } from "./artifacts";
+import { CheckpointInspect } from "./checkpoint-inspect";
 import type { RailPanel } from "./command-palette";
 import { useCoordinator } from "./coordinator";
+import { HistoryPanel } from "./history-panel";
 import { initials } from "./identity";
 import { useRoom } from "./room-provider";
 import { useRoomRoster } from "./roster";
@@ -42,10 +46,11 @@ export function RoomRail({
   onPanelChange: (panel: RailPanel) => void;
   onClose: () => void;
 }) {
-  const { roomId, meta, status, isOnline, mesh } = useRoom();
+  const { roomId, meta, status, isOnline, mesh, checkpoints } = useRoom();
   const roster = useRoomRoster();
   const coordinator = useCoordinator();
   const [copied, setCopied] = useState(false);
+  const [inspected, setInspected] = useState<CheckpointMeta | null>(null);
 
   const roomName = meta?.name ?? `Room ${roomId.slice(0, 8)}`;
 
@@ -102,6 +107,13 @@ export function RoomRail({
         ))}
       </div>
 
+      {panel === "history" ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <HistoryPanel onInspect={(checkpoint) => setInspected(checkpoint)} />
+        </div>
+      ) : null}
+
+      {panel !== "history" ? (
       <div className="min-h-0 flex-1 overflow-y-auto">
         {panel === "details" ? (
           <div className="flex flex-col gap-3.5">
@@ -145,7 +157,9 @@ export function RoomRail({
               Versions
             </div>
             <div className="text-body-sm text-subtle-foreground">
-              No checkpoints on this device yet. History arrives with #7.
+              {checkpoints.length === 0
+                ? "No checkpoints yet — the room checkpoints itself after a quiet minute."
+                : `${checkpoints.length} checkpoint${checkpoints.length === 1 ? "" : "s"} on this device.`}
             </div>
           </div>
         ) : null}
@@ -198,15 +212,16 @@ export function RoomRail({
           </div>
         ) : null}
 
-        {panel === "history" ? (
-          <div className="flex flex-col gap-2">
-            <div className="text-body-sm text-subtle-foreground">
-              Checkpoints are taken when a surface goes quiet. The timeline lands with #7, backed by
-              the checkpoint log in #6.
-            </div>
-          </div>
-        ) : null}
       </div>
+      ) : null}
+
+      <CheckpointInspect
+        checkpoint={inspected}
+        open={inspected !== null}
+        onOpenChange={(open) => {
+          if (!open) setInspected(null);
+        }}
+      />
     </aside>
   );
 }

@@ -19,12 +19,15 @@ import { HistoryStore, type CheckpointMeta } from "@/lib/history-store";
 import { useTRPC } from "@/utils/trpc";
 
 import { identityColor, initials } from "./identity";
+import { useAwayIds } from "./use-away";
 import { ensureProject, seedSampleProject } from "./project/migrate";
 import { listProjectFiles } from "./project/project";
 import { readRoomContent } from "./room-content";
 import { deriveRoomStatus, type RoomStatus } from "./room-status";
 
 const GUEST_NAME_KEY = "meldspace.peer-name";
+/** Stillness before an automatic checkpoint lands (#7). */
+const QUIET_CHECKPOINT_MS = 60_000;
 const DEVICE_ID_KEY = "meldspace:device-id";
 
 /**
@@ -139,6 +142,11 @@ export type RoomContextValue = {
    * here yet — that call is where the coordinator gate belongs.
    */
   createCheckpoint: () => void;
+  /**
+   * "While you were away" (#7): ids of checkpoints this device hadn't seen
+   * when the room opened, per the localStorage seen-marker.
+   */
+  awayIds: string[];
 };
 
 const RoomContext = createContext<RoomContextValue | null>(null);
@@ -174,6 +182,7 @@ export function RoomProvider({
   const [deviceId] = useState(readDeviceId);
   const [history, setHistory] = useState<HistoryStore | null>(null);
   const [checkpoints, setCheckpoints] = useState<CheckpointMeta[]>([]);
+  const awayIds = useAwayIds(roomId, checkpoints);
 
   const onlineRef = useRef(isOnline);
   onlineRef.current = isOnline;
@@ -306,6 +315,25 @@ export function RoomProvider({
     };
   }, [runtime]);
 
+  // Quiet-room checkpoints (#7): a minute of stillness lands a checkpoint, so
+  // the log is the room's memory even when nobody presses the button.
+  // `createCheckpoint` dedups on content hash, so trailing timers cost nothing.
+  useEffect(() => {
+    if (!runtime || !history) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const arm = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        history.createCheckpoint({ deviceId, displayName: name });
+      }, QUIET_CHECKPOINT_MS);
+    };
+    runtime.doc.on("update", arm);
+    return () => {
+      runtime.doc.off("update", arm);
+      if (timer) clearTimeout(timer);
+    };
+  }, [runtime, history, deviceId, name]);
+
   const createCheckpoint = useCallback(() => {
     history?.createCheckpoint({ deviceId, displayName: name });
   }, [history, deviceId, name]);
@@ -341,6 +369,7 @@ export function RoomProvider({
       history,
       checkpoints,
       createCheckpoint,
+      awayIds,
     }),
     [
       roomId,
@@ -356,6 +385,7 @@ export function RoomProvider({
       history,
       checkpoints,
       createCheckpoint,
+      awayIds,
     ],
   );
 
