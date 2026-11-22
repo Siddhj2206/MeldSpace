@@ -16,8 +16,13 @@ import { WebrtcProvider } from "y-webrtc";
 
 import { ENV } from "@/env";
 import { HistoryStore, type CheckpointMeta } from "@/lib/history-store";
-import { readDeviceId, readGuestName } from "@/lib/peer-identity";
-import { useTRPC } from "@/utils/trpc";
+import {
+  adoptDeviceId,
+  isDeviceRegistered,
+  readDeviceId,
+  readGuestName,
+} from "@/lib/peer-identity";
+import { useTRPC, useTRPCClient } from "@/utils/trpc";
 
 import { BlobStore } from "./blobs";
 import { useCoordinatorElection } from "./coordinator";
@@ -330,9 +335,15 @@ export function RoomProvider({
         history.createCheckpoint({ deviceId, displayName: name });
       }, QUIET_CHECKPOINT_MS);
     };
-    runtime.doc.on("update", arm);
+    // Only local edits arm the timer (`tr.local` is false for provider/IDB
+    // merges) — a checkpoint's author should be the device that changed the
+    // room, not one that merely received an update.
+    const onUpdate = (_update: Uint8Array, _origin: unknown, _doc: Y.Doc, tr: Y.Transaction) => {
+      if (tr.local) arm();
+    };
+    runtime.doc.on("update", onUpdate);
     return () => {
-      runtime.doc.off("update", arm);
+      runtime.doc.off("update", onUpdate);
       if (timer) clearTimeout(timer);
     };
   }, [runtime, history, deviceId, name]);
@@ -353,6 +364,36 @@ export function RoomProvider({
     staleTime: 30_000,
     meta: { suppressErrorToast: true },
   });
+
+  // Membership on open (#17): a peer arriving by share link or QR never typed
+  // a join code, so record it here — register the device once (anonymous),
+  // then room.join, which is idempotent per (room, device). Fire and forget:
+  // membership is control-plane bookkeeping, never a gate on the room.
+  const trpcClient = useTRPCClient();
+  useEffect(() => {
+    const joinCode = byIdQuery.data?.joinCode;
+    if (!joinCode || !isOnline) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        let deviceId = readDeviceId();
+        if (!isDeviceRegistered()) {
+          const registered = await trpcClient.device.register.mutate({
+            displayName: name,
+          });
+          if (cancelled) return;
+          adoptDeviceId(registered.deviceId);
+          deviceId = registered.deviceId;
+        }
+        await trpcClient.room.join.mutate({ joinCode, deviceId, displayName: name });
+      } catch {
+        /* control plane unreachable — the room converges anyway */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [byIdQuery.data?.joinCode, isOnline, name, trpcClient]);
 
   const meshPeers = mesh.webrtc + mesh.bc;
   const status = deriveRoomStatus({ persisted, isOnline, meshPeers, synced, queued });

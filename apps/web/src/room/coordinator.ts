@@ -109,7 +109,20 @@ export function useCoordinatorElection(runtime: RoomRuntime | null): void {
       const present = new Set(awareness.getStates().keys());
       if (present.size === 0) return; // vacant: nobody present can hold it
       const claims = readClaims(doc);
-      if (coordinatorWinner(claims, present) !== null) return; // a present peer already holds
+      const holder = coordinatorWinner(claims, present);
+      if (holder !== null) {
+        // A present peer already holds. Garbage-collect claims that can never
+        // win again — absent peers strictly below the holder's epoch — without
+        // touching the max epoch, which future claims still increment from.
+        doc.transact(() => {
+          for (const claim of claims) {
+            if (claim.epoch < holder.epoch && !present.has(claim.clientId)) {
+              map.delete(String(claim.clientId));
+            }
+          }
+        });
+        return;
+      }
 
       const claimant = Math.min(...present);
       if (claimant !== doc.clientID) return; // not our job

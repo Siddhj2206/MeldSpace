@@ -83,9 +83,8 @@ export function useLatexCompile(
   // Blob URL lifecycle: revoke the previous PDF before replacing it, and on
   // unmount, so recompiles don't leak object URLs.
   useEffect(() => {
-    const current = urlRef.current;
     return () => {
-      if (current) URL.revokeObjectURL(current);
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     };
   }, []);
 
@@ -94,7 +93,7 @@ export function useLatexCompile(
     setPhase("compiling");
     setError(null);
     try {
-      const project = materializeLatexProject(runtime.doc);
+      const project = materializeLatexProject(runtime.doc, runtime.blobStore);
       if (!project) {
         setPhase("error");
         setError("No LaTeX sources yet — add a main.tex to the room, or start from the template.");

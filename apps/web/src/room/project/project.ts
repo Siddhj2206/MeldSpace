@@ -175,6 +175,23 @@ export function deleteProjectFile(doc: Y.Doc, path: string): boolean {
   return true;
 }
 
+/**
+ * A collision-free project path: `desired`, else `dir/<n>-<base>` counting up.
+ * Covers both text files (`texts`) and figure paths (`assets`).
+ */
+export function uniqueProjectPath(doc: Y.Doc, desired: string): string {
+  const { texts, assets, tree } = projectMaps(doc);
+  const taken = (path: string) => texts.has(path) || assets.has(path) || tree.has(path);
+  if (!taken(desired)) return desired;
+  const slash = desired.lastIndexOf("/");
+  const dir = slash >= 0 ? `${desired.slice(0, slash)}/` : "";
+  const base = slash >= 0 ? desired.slice(slash + 1) : desired;
+  for (let attempt = 2; ; attempt += 1) {
+    const candidate = `${dir}${attempt}-${base}`;
+    if (!taken(candidate)) return candidate;
+  }
+}
+
 export function setProjectAsset(doc: Y.Doc, path: string, ref: AssetRef): void {
   doc.transact(() => {
     projectMaps(doc).assets.set(path, ref);

@@ -40,7 +40,8 @@ export function CheckpointInspect({
     const detached = history.inspect(checkpoint.id);
     const snapshot = detached ? snapshotProjectTexts(detached) : {};
     setFiles(snapshot);
-    setSelected(Object.keys(snapshot)[0] ?? null);
+    // Match the sidebar's own ordering so the highlight is the top-listed file.
+    setSelected(Object.keys(snapshot).sort()[0] ?? null);
     return () => detached?.destroy();
   }, [open, checkpoint, history]);
 
