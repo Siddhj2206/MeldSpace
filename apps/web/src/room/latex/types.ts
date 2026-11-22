@@ -12,7 +12,8 @@
 
 export type LatexFileInput = {
   path: string;
-  content: string;
+  /** Text for sources; bytes for figures (#9 assets via the #8 blob store). */
+  content: string | Uint8Array;
 };
 
 export type CompileRequest = {

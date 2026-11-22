@@ -1,5 +1,6 @@
 const GUEST_NAME_KEY = "meldspace.peer-name";
 const DEVICE_ID_KEY = "meldspace:device-id";
+const DEVICE_REGISTERED_KEY = "meldspace:device-registered";
 
 /**
  * RFC 4122 v4 id. `crypto.randomUUID` only exists in secure contexts, so a LAN
@@ -42,8 +43,22 @@ export function adoptDeviceId(deviceId: string): void {
   if (typeof window === "undefined" || !deviceId) return;
   try {
     window.localStorage.setItem(DEVICE_ID_KEY, deviceId);
+    window.localStorage.setItem(DEVICE_REGISTERED_KEY, "1");
   } catch {
     /* unregistered identity stays local-only */
+  }
+}
+
+/**
+ * `device.register` creates a *new* server row each call, so callers must not
+ * register twice. True once `adoptDeviceId` ran on this browser.
+ */
+export function isDeviceRegistered(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(DEVICE_REGISTERED_KEY) === "1";
+  } catch {
+    return false;
   }
 }
 

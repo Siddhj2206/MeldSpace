@@ -16,8 +16,13 @@ import { WebrtcProvider } from "y-webrtc";
 
 import { ENV } from "@/env";
 import { HistoryStore, type CheckpointMeta } from "@/lib/history-store";
-import { readDeviceId, readGuestName } from "@/lib/peer-identity";
-import { useTRPC } from "@/utils/trpc";
+import {
+  adoptDeviceId,
+  isDeviceRegistered,
+  readDeviceId,
+  readGuestName,
+} from "@/lib/peer-identity";
+import { useTRPC, useTRPCClient } from "@/utils/trpc";
 
 import { BlobStore } from "./blobs";
 import { useCoordinatorElection } from "./coordinator";
@@ -359,6 +364,36 @@ export function RoomProvider({
     staleTime: 30_000,
     meta: { suppressErrorToast: true },
   });
+
+  // Membership on open (#17): a peer arriving by share link or QR never typed
+  // a join code, so record it here — register the device once (anonymous),
+  // then room.join, which is idempotent per (room, device). Fire and forget:
+  // membership is control-plane bookkeeping, never a gate on the room.
+  const trpcClient = useTRPCClient();
+  useEffect(() => {
+    const joinCode = byIdQuery.data?.joinCode;
+    if (!joinCode || !isOnline) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        let deviceId = readDeviceId();
+        if (!isDeviceRegistered()) {
+          const registered = await trpcClient.device.register.mutate({
+            displayName: name,
+          });
+          if (cancelled) return;
+          adoptDeviceId(registered.deviceId);
+          deviceId = registered.deviceId;
+        }
+        await trpcClient.room.join.mutate({ joinCode, deviceId, displayName: name });
+      } catch {
+        /* control plane unreachable — the room converges anyway */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [byIdQuery.data?.joinCode, isOnline, name, trpcClient]);
 
   const meshPeers = mesh.webrtc + mesh.bc;
   const status = deriveRoomStatus({ persisted, isOnline, meshPeers, synced, queued });

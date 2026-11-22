@@ -1,6 +1,8 @@
 import * as Y from "yjs";
 
 import { listProjectFiles } from "../project/project";
+import type { BlobStore } from "../blobs";
+import { ASSETS_MAP_NAME, type AssetRef } from "../project/types";
 import { DOCUMENTS_KEY, TITLES_KEY } from "../room-content";
 import type { LatexFileInput } from "./types";
 
@@ -60,7 +62,10 @@ function cleanPath(raw: string): string {
   return parts.join("/");
 }
 
-export function materializeLatexProject(doc: Y.Doc): MaterializedProject | null {
+export function materializeLatexProject(
+  doc: Y.Doc,
+  blobStore?: BlobStore,
+): MaterializedProject | null {
   const byPath = new Map<string, string>();
   // #24 shape first so it wins on collision after migration.
   for (const file of listProjectFiles(doc)) {
@@ -96,6 +101,15 @@ export function materializeLatexProject(doc: Y.Doc): MaterializedProject | null 
   for (const [path, content] of byPath) {
     if (path !== mainTexPath) additionalFiles.push({ path, content });
   }
+
+  // Figure assets (#9): metadata in the doc, bytes in the #8 blob store.
+  // A referenced blob that hasn't converged yet is skipped rather than
+  // blocking the compile — \includegraphics fails soft in the log.
+  doc.getMap<AssetRef>(ASSETS_MAP_NAME).forEach((ref, path) => {
+    const entry = blobStore?.get(ref.hash);
+    if (entry) additionalFiles.push({ path: cleanPath(path), content: entry.data });
+  });
+
   additionalFiles.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 
   return { mainTexPath, input, additionalFiles };

@@ -93,7 +93,7 @@ export function useLatexCompile(
     setPhase("compiling");
     setError(null);
     try {
-      const project = materializeLatexProject(runtime.doc);
+      const project = materializeLatexProject(runtime.doc, runtime.blobStore);
       if (!project) {
         setPhase("error");
         setError("No LaTeX sources yet — add a main.tex to the room, or start from the template.");
