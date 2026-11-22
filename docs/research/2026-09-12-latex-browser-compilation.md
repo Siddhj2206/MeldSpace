@@ -38,18 +38,18 @@ Overleaf does **not** compile in the browser. It is the reference server-side ar
 
 ## 2. Browser-compile options at a glance
 
-| Option | Engines | License | Last repo activity | npm | On-demand packages | SyncTeX | Offline after first use |
-|---|---|---|---|---|---|---|---|
-| **texlyre-busytex** | pdfTeX, XeTeX, LuaHBTeX, bibtex8, biber, makeindex | **AGPL-3.0-or-later** | 2026-08-17 (push), v1.4.0 2026-08-14 | `texlyre-busytex@1.4.0` | Yes (`remoteEndpoint`), cache is your job | **Yes** (`.synctex.gz`) | Yes if you cache packages yourself |
-| **BusyTeX** (upstream) | xetex, pdftex, luahbtex, bibtex8, xdvipdfmx, makeindex | Repo MIT; binaries inherit TeX Live licenses | 2026-08-29 | none | No (preloaded data packages only) | engine supports it | Only preloaded data |
-| **SwiftLaTeX** | pdfTeX, XeTeX (+ dvipdfmx) | Repo AGPL-3.0; engine sources EPL-2.0/GPL-2.0+CE | Last release 2022-02; push 2024-06-18 | none | Yes (CTAN / self-host) | **No** | Undocumented |
-| **texlive.js** | pdfTeX only (TeX Live 2016) | GPL-2.0 | **2017-01-24** | none | No | No | No |
-| **latex.js** | none (LaTeX→HTML5 translator) | MIT | npm 0.12.6, 2023-04-23; repo push 2026-08-19 | `latex.js@0.12.6` | N/A (packages must be reimplemented in JS) | No | N/A |
-| **Tectonic** (native) | XeTeX + xdvipdfmx | MIT (Tectonic code) | 2026-08-01, very active | none (Rust crate) | Yes (bundle + cache) | via engine | Yes (native cache) |
-| **tectonic-wasm** (community) | XeTeX + xdvipdfmx | README says MIT; repo has no license metadata | 2026-03-15, 1★, 3 commits | none | Yes (CDN Range) | Not documented | Not documented |
-| **@typeward/texlive-wasm** | pdfLaTeX, XeLaTeX, LuaLaTeX, bibtexu, biber, xdvipdfmx, makeindex | MIT wrapper; TeX Live licenses for engines | 2026-09-03, 1★, **pre-alpha** | `@typeward/texlive-wasm@0.2.4-alpha` | Yes (FetchFS) + OPFS cache | Engines emit it; parser incomplete | Yes (OPFS) |
-| **@siglum/engine** | pdfLaTeX, XeLaTeX (built on BusyTeX) | MIT | 2026-05-28, 5★ | `@siglum/engine@0.1.4` | Yes (CTAN proxy) | Not documented | Yes (browser cache) |
-| **Server TeX Live + latexmk** | all | TeX Live licenses; `latexmk` GPLv2 | active | N/A | N/A (full install) | **Yes** | N/A (server) |
+| Option                        | Engines                                                           | License                                          | Last repo activity                           | npm                                  | On-demand packages                         | SyncTeX                            | Offline after first use            |
+| ----------------------------- | ----------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------- | ------------------------------------ | ------------------------------------------ | ---------------------------------- | ---------------------------------- |
+| **texlyre-busytex**           | pdfTeX, XeTeX, LuaHBTeX, bibtex8, biber, makeindex                | **AGPL-3.0-or-later**                            | 2026-08-17 (push), v1.4.0 2026-08-14         | `texlyre-busytex@1.4.0`              | Yes (`remoteEndpoint`), cache is your job  | **Yes** (`.synctex.gz`)            | Yes if you cache packages yourself |
+| **BusyTeX** (upstream)        | xetex, pdftex, luahbtex, bibtex8, xdvipdfmx, makeindex            | Repo MIT; binaries inherit TeX Live licenses     | 2026-08-29                                   | none                                 | No (preloaded data packages only)          | engine supports it                 | Only preloaded data                |
+| **SwiftLaTeX**                | pdfTeX, XeTeX (+ dvipdfmx)                                        | Repo AGPL-3.0; engine sources EPL-2.0/GPL-2.0+CE | Last release 2022-02; push 2024-06-18        | none                                 | Yes (CTAN / self-host)                     | **No**                             | Undocumented                       |
+| **texlive.js**                | pdfTeX only (TeX Live 2016)                                       | GPL-2.0                                          | **2017-01-24**                               | none                                 | No                                         | No                                 | No                                 |
+| **latex.js**                  | none (LaTeX→HTML5 translator)                                     | MIT                                              | npm 0.12.6, 2023-04-23; repo push 2026-08-19 | `latex.js@0.12.6`                    | N/A (packages must be reimplemented in JS) | No                                 | N/A                                |
+| **Tectonic** (native)         | XeTeX + xdvipdfmx                                                 | MIT (Tectonic code)                              | 2026-08-01, very active                      | none (Rust crate)                    | Yes (bundle + cache)                       | via engine                         | Yes (native cache)                 |
+| **tectonic-wasm** (community) | XeTeX + xdvipdfmx                                                 | README says MIT; repo has no license metadata    | 2026-03-15, 1★, 3 commits                    | none                                 | Yes (CDN Range)                            | Not documented                     | Not documented                     |
+| **@typeward/texlive-wasm**    | pdfLaTeX, XeLaTeX, LuaLaTeX, bibtexu, biber, xdvipdfmx, makeindex | MIT wrapper; TeX Live licenses for engines       | 2026-09-03, 1★, **pre-alpha**                | `@typeward/texlive-wasm@0.2.4-alpha` | Yes (FetchFS) + OPFS cache                 | Engines emit it; parser incomplete | Yes (OPFS)                         |
+| **@siglum/engine**            | pdfLaTeX, XeLaTeX (built on BusyTeX)                              | MIT                                              | 2026-05-28, 5★                               | `@siglum/engine@0.1.4`               | Yes (CTAN proxy)                           | Not documented                     | Yes (browser cache)                |
+| **Server TeX Live + latexmk** | all                                                               | TeX Live licenses; `latexmk` GPLv2               | active                                       | N/A                                  | N/A (full install)                         | **Yes**                            | N/A (server)                       |
 
 All engine sizes, versions and dates are from the cited npm/GitHub sources listed in **Sources**.
 
@@ -209,19 +209,19 @@ This is Overleaf's model applied to MeldSpace, and it remains the correctness go
 
 ### 10.7 Licensing summary
 
-| Component | License |
-|---|---|
-| Overleaf CLSI | AGPL-3.0 |
-| `latexmk` | GPL-2.0 |
-| SwiftLaTeX repo | AGPL-3.0; engine sources EPL-2.0 / GPL-2.0+CE |
-| BusyTeX upstream | MIT repo; binaries inherit TeX Live licenses |
-| `texlyre-busytex` | **AGPL-3.0-or-later** (derived from BusyTeX WASM, MIT) |
-| `texlive.js` | GPL-2.0 |
-| `latex.js` | MIT |
-| Tectonic | MIT (derived elements vary) |
-| `nl5887/tectonic-wasm` | claimed MIT; no repo license metadata |
-| `@typeward/texlive-wasm` | MIT wrapper; TeX Live licenses for engines |
-| `@siglum/engine` | MIT |
+| Component                | License                                                |
+| ------------------------ | ------------------------------------------------------ |
+| Overleaf CLSI            | AGPL-3.0                                               |
+| `latexmk`                | GPL-2.0                                                |
+| SwiftLaTeX repo          | AGPL-3.0; engine sources EPL-2.0 / GPL-2.0+CE          |
+| BusyTeX upstream         | MIT repo; binaries inherit TeX Live licenses           |
+| `texlyre-busytex`        | **AGPL-3.0-or-later** (derived from BusyTeX WASM, MIT) |
+| `texlive.js`             | GPL-2.0                                                |
+| `latex.js`               | MIT                                                    |
+| Tectonic                 | MIT (derived elements vary)                            |
+| `nl5887/tectonic-wasm`   | claimed MIT; no repo license metadata                  |
+| `@typeward/texlive-wasm` | MIT wrapper; TeX Live licenses for engines             |
+| `@siglum/engine`         | MIT                                                    |
 
 **The AGPL point matters.** If MeldSpace is or becomes closed-source, shipping `texlyre-busytex` inside the client triggers AGPL-3.0-or-later obligations. Mitigations: (a) run the AGPL compile worker as a separately-communicating process/service where the AGPL boundary is respected (still requires care), (b) adopt the MIT `@typeward/texlive-wasm` when it matures, or (c) produce your own Emscripten build from MIT BusyTeX scripts (the binaries remain under TeX Live licenses, which is the same situation every LaTeX distributor is in). Get counsel; do not treat this as settled.
 

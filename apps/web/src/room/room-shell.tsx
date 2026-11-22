@@ -62,7 +62,19 @@ function RoomShellInner() {
   const files = useProjectFiles();
   const assets = useProjectAssets();
   const artifacts = useMemo(
-    () => [...projectFileArtifacts(files), ...projectAssetArtifacts(assets)],
+    () => [
+      ...projectFileArtifacts(files),
+      ...projectAssetArtifacts(assets),
+      // One diagram board per room (#11) — a figure tool, always present.
+      {
+        id: "board:main",
+        kind: "board" as const,
+        surface: "board" as const,
+        title: "Board",
+        subtitle: "Diagram",
+        sourceKey: "board",
+      },
+    ],
     [files, assets],
   );
 

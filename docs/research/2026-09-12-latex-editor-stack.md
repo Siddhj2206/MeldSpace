@@ -160,6 +160,7 @@ evidence all point the same way: [14][15][16]
   that shell-escape/`minted` cannot run in the sandbox.
 
 **Conclusion for MeldSpace:** do not plan on texlab-in-browser. Options, best first:
+
 1. Ship the built-in `latexLinter` now.
 2. Add an optional LSP bridge: run texlab locally (or on the control plane as a sidecar) and
    connect CodeMirror over WebSocket, exactly as TeXlyre does. This preserves the local-first story
@@ -185,7 +186,7 @@ evidence all point the same way: [14][15][16]
 - Compilation: `bibtex8` is supported by the WASM engines. `biber` (biblatex's backend) is harder:
   it is Perl, so it needs a WASM Perl runtime. TeXlyre's `texlyre-busytex` bundles WebPerl and runs
   biber 2.19; glyphtex's Tectonic WASM declares biber unsupported. [15][20][21]
-- Citation *rendering* (CSL/APA/IEEE) is a separate concern; texlab uses `citeproc-rs`, and
+- Citation _rendering_ (CSL/APA/IEEE) is a separate concern; texlab uses `citeproc-rs`, and
   `citation-js` is the JS-side option. For a first version, support `bibtex` + `.bbl` and note
   biber as a follow-up. **[inference]**
 
@@ -261,8 +262,8 @@ are separate rooms. This is a good **scale-up** design, not a starting design.
 - **y/hub (y-redis):** keyed by `(org, docid, branch)`; again, one logical document per ID and no
   built-in tree. [34]
 - **AFFiNE:** uses subdocuments plus a custom lazy-load provider factory for IndexedDB/SQLite, with
-  a "load on access, don't eagerly load the tree" policy (and the lesson that lazy *offloading* via
-  ref counts caused churn; they settled on lazy *loading* only). [24][35]
+  a "load on access, don't eagerly load the tree" policy (and the lesson that lazy _offloading_ via
+  ref counts caused churn; they settled on lazy _loading_ only). [24][35]
 
 The convergent lesson: the ecosystem gives you **many independent documents**; the **tree is
 application state** you design yourself, usually as a manifest/root document.
@@ -353,16 +354,16 @@ see the new tree, so you need a version gate and a fallback UI. Option 1 avoids 
 
 ### Exact CodeMirror packages
 
-| Package | Version | Role | Licence |
-|---|---|---|---|
-| `codemirror-lang-latex` | `0.6.1` (or `0.4.2` if MIT is mandatory) | Lezer LaTeX: highlight, indent, fold, completion, hover, lint | **AGPL-3.0-or-later** at ≥0.5.0; MIT at ≤0.4.2 |
-| `codemirror-lang-bib` | `0.2.4` | BibTeX editing, completion, lint | MIT |
-| `@codemirror/autocomplete` | `^6.20` | Completion framework + `snippetCompletion` | MIT |
-| `@codemirror/lint` | `^6.9` | `linter()` host for `latexLinter` | MIT |
-| `@codemirror/state`, `@codemirror/view`, `@codemirror/commands` | current (already in `apps/web`) | Editor core | MIT |
-| `@replit/codemirror-vim` | `6.4.0` | Vim keymap (optional) | MIT |
-| `@replit/codemirror-emacs` | current | Emacs keymap (optional) | MIT |
-| `yjs`, `y-codemirror.next`, `y-indexeddb`, `y-webrtc`, `y-protocols` | keep existing | CRDT + binding + offline + P2P | MIT |
+| Package                                                              | Version                                  | Role                                                          | Licence                                        |
+| -------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------- |
+| `codemirror-lang-latex`                                              | `0.6.1` (or `0.4.2` if MIT is mandatory) | Lezer LaTeX: highlight, indent, fold, completion, hover, lint | **AGPL-3.0-or-later** at ≥0.5.0; MIT at ≤0.4.2 |
+| `codemirror-lang-bib`                                                | `0.2.4`                                  | BibTeX editing, completion, lint                              | MIT                                            |
+| `@codemirror/autocomplete`                                           | `^6.20`                                  | Completion framework + `snippetCompletion`                    | MIT                                            |
+| `@codemirror/lint`                                                   | `^6.9`                                   | `linter()` host for `latexLinter`                             | MIT                                            |
+| `@codemirror/state`, `@codemirror/view`, `@codemirror/commands`      | current (already in `apps/web`)          | Editor core                                                   | MIT                                            |
+| `@replit/codemirror-vim`                                             | `6.4.0`                                  | Vim keymap (optional)                                         | MIT                                            |
+| `@replit/codemirror-emacs`                                           | current                                  | Emacs keymap (optional)                                       | MIT                                            |
+| `yjs`, `y-codemirror.next`, `y-indexeddb`, `y-webrtc`, `y-protocols` | keep existing                            | CRDT + binding + offline + P2P                                | MIT                                            |
 
 Do **not** add `@codemirror/lang-latex` (it does not exist). Keep `@codemirror/legacy-modes`
 `stex` only as a fallback if the AGPL grammar is rejected and no grammar is written.
@@ -409,6 +410,7 @@ stock subdocuments for this.
 All URLs accessed **2026-09-12**.
 
 **CodeMirror LaTeX / editor**
+
 1. `@codemirror/lang-latex` npm registry — 404, no such package:
    <https://registry.npmjs.org/@codemirror/lang-latex>
 2. `@codemirror/legacy-modes` npm registry (v6.5.4, modified 2026-09-02) and `stex` source:
@@ -455,54 +457,32 @@ All URLs accessed **2026-09-12**.
 21. glyphtex `packages/tex-engine` (Tectonic WASM; biber/minted/shell-escape unsupported) —
     <https://github.com/kanakkholwal/glyphtex/tree/main/packages/tex-engine>
 
-**Yjs project model**
-22. Liveblocks guide, "How to use Yjs subdocuments" (recommends `Y.Map` for multiple editors) —
-    <https://liveblocks.io/docs/guides/how-to-use-yjs-subdocuments>
-23. Yjs docs, Subdocuments (providers must sync subdocs; per-`guid` provider workaround) —
-    <https://docs.yjs.dev/api/subdocuments>
-24. `y-indexeddb` issue #32, "sub-doc syncing support" (open, assigned) —
-    <https://github.com/yjs/y-indexeddb/issues/32>
-25. Yjs Community, "Subdocuments in ws-provider" (one connection per subdoc; per-provider IndexedDB
-    databases) — <https://discuss.yjs.dev/t/subdocuments-in-ws-provider/2107>
-26. TeXlyre `CollabService.ts` (per-collection Y.Doc + `IndexeddbPersistence` + `WebrtcProvider`,
-    room naming, ref-counting, `syncAllDocuments`) —
-    <https://raw.githubusercontent.com/TeXlyre/texlyre/main/src/services/CollabService.ts>
-27. TeXlyre `ProjectDataService.ts` (metadata Y.Map, per-doc `texlyre-project-<id>-yjs_<docId>`) —
-    <https://raw.githubusercontent.com/TeXlyre/texlyre/main/src/services/ProjectDataService.ts>
-28. TeXlyre `PeerFileSyncService.ts` (SHA-256 checksums, FilePizza P2P transfer, conflict modes) —
-    <https://raw.githubusercontent.com/TeXlyre/texlyre/main/src/services/PeerFileSyncService.ts>
-29. TeXlyre `types/files.ts` (`FileNode`/`documentId`) —
-    <https://raw.githubusercontent.com/TeXlyre/texlyre/main/src/types/files.ts>
-30. Automerge Repo, DocHandles (`AutomergeUrl`, `repo.find` storage-then-network) —
-    <https://automerge.org/docs/reference/repositories/dochandles/> ·
-    <https://automerge.org/automerge-repo/classes/_automerge_automerge-repo.Repo.html>
-31. automerge-repo issue #397, maintainer guidance to use a "directory/root folder" document —
-    <https://github.com/automerge/automerge-repo/issues/397>
-32. y-sweet docs — <https://docs.y-sweet.dev/> · repo:
-    <https://github.com/jamsocket/y-sweet>
-33. y-sweet "how it works" (per-`docId` document store; API surface) —
-    <https://docs.jamsocket.com/y-sweet/concepts/how-ysweet-works>
-34. y/hub (y-redis) storage keyed by `(org, docid, branch)` —
-    <https://github.com/yjs/y-redis>
-35. AFFiNE, "YJS Lazy Load Doc Provider" —
-    <https://pengx17.vercel.app/posts/yjs-lazy-load-doc-provider>
-36. Yjs docs, Undo Manager (scope `AbstractType | Array`, tracks children; `trackedOrigins`) —
-    <https://docs.yjs.dev/api/undo-manager>
-37. Yjs Community, "Syncing binary data" (store bytes elsewhere, share hashes) —
-    <https://discuss.yjs.dev/t/syncing-binary-data/2047>
-38. filepizza-client — <https://github.com/kern/filepizza>
+**Yjs project model** 22. Liveblocks guide, "How to use Yjs subdocuments" (recommends `Y.Map` for multiple editors) —
+<https://liveblocks.io/docs/guides/how-to-use-yjs-subdocuments> 23. Yjs docs, Subdocuments (providers must sync subdocs; per-`guid` provider workaround) —
+<https://docs.yjs.dev/api/subdocuments> 24. `y-indexeddb` issue #32, "sub-doc syncing support" (open, assigned) —
+<https://github.com/yjs/y-indexeddb/issues/32> 25. Yjs Community, "Subdocuments in ws-provider" (one connection per subdoc; per-provider IndexedDB
+databases) — <https://discuss.yjs.dev/t/subdocuments-in-ws-provider/2107> 26. TeXlyre `CollabService.ts` (per-collection Y.Doc + `IndexeddbPersistence` + `WebrtcProvider`,
+room naming, ref-counting, `syncAllDocuments`) —
+<https://raw.githubusercontent.com/TeXlyre/texlyre/main/src/services/CollabService.ts> 27. TeXlyre `ProjectDataService.ts` (metadata Y.Map, per-doc `texlyre-project-<id>-yjs_<docId>`) —
+<https://raw.githubusercontent.com/TeXlyre/texlyre/main/src/services/ProjectDataService.ts> 28. TeXlyre `PeerFileSyncService.ts` (SHA-256 checksums, FilePizza P2P transfer, conflict modes) —
+<https://raw.githubusercontent.com/TeXlyre/texlyre/main/src/services/PeerFileSyncService.ts> 29. TeXlyre `types/files.ts` (`FileNode`/`documentId`) —
+<https://raw.githubusercontent.com/TeXlyre/texlyre/main/src/types/files.ts> 30. Automerge Repo, DocHandles (`AutomergeUrl`, `repo.find` storage-then-network) —
+<https://automerge.org/docs/reference/repositories/dochandles/> ·
+<https://automerge.org/automerge-repo/classes/_automerge_automerge-repo.Repo.html> 31. automerge-repo issue #397, maintainer guidance to use a "directory/root folder" document —
+<https://github.com/automerge/automerge-repo/issues/397> 32. y-sweet docs — <https://docs.y-sweet.dev/> · repo:
+<https://github.com/jamsocket/y-sweet> 33. y-sweet "how it works" (per-`docId` document store; API surface) —
+<https://docs.jamsocket.com/y-sweet/concepts/how-ysweet-works> 34. y/hub (y-redis) storage keyed by `(org, docid, branch)` —
+<https://github.com/yjs/y-redis> 35. AFFiNE, "YJS Lazy Load Doc Provider" —
+<https://pengx17.vercel.app/posts/yjs-lazy-load-doc-provider> 36. Yjs docs, Undo Manager (scope `AbstractType | Array`, tracks children; `trackedOrigins`) —
+<https://docs.yjs.dev/api/undo-manager> 37. Yjs Community, "Syncing binary data" (store bytes elsewhere, share hashes) —
+<https://discuss.yjs.dev/t/syncing-binary-data/2047> 38. filepizza-client — <https://github.com/kern/filepizza>
 
-**SyncTeX / compilation**
-39. `paleomitchelljs/latex` (browser pdfTeX via BusyTeX, `synctex.js` forward/reverse, pdf.js) —
-    <https://github.com/paleomitchelljs/latex>
-40. glyphtex `synctex.ts` (`SyncTexMap` forward/locate) —
-    <https://github.com/kanakkholwal/glyphtex/blob/main/packages/ui/src/lib/editor/synctex.ts> ·
-    PDF view: <https://github.com/kanakkholwal/glyphtex/blob/main/packages/ui/src/components/application/pdf-view.svelte>
-41. LaTeX-Workshop client viewer `synctex.ts` (pdf.js `convertToViewportPoint`/`getPagePoint`) —
-    <https://github.com/James-Yu/LaTeX-Workshop/blob/master/viewer/components/synctex.ts>
-42. SynctTeX-js (standalone JS SyncTeX parser) — <https://durieux.me/projects/synctexjs/>
-43. MeldSpace current room (`Y.Text("content")`, `y-indexeddb`, `y-webrtc`) —
-    `apps/web/src/routes/room.$roomId.tsx`
+**SyncTeX / compilation** 39. `paleomitchelljs/latex` (browser pdfTeX via BusyTeX, `synctex.js` forward/reverse, pdf.js) —
+<https://github.com/paleomitchelljs/latex> 40. glyphtex `synctex.ts` (`SyncTexMap` forward/locate) —
+<https://github.com/kanakkholwal/glyphtex/blob/main/packages/ui/src/lib/editor/synctex.ts> ·
+PDF view: <https://github.com/kanakkholwal/glyphtex/blob/main/packages/ui/src/components/application/pdf-view.svelte> 41. LaTeX-Workshop client viewer `synctex.ts` (pdf.js `convertToViewportPoint`/`getPagePoint`) —
+<https://github.com/James-Yu/LaTeX-Workshop/blob/master/viewer/components/synctex.ts> 42. SynctTeX-js (standalone JS SyncTeX parser) — <https://durieux.me/projects/synctexjs/> 43. MeldSpace current room (`Y.Text("content")`, `y-indexeddb`, `y-webrtc`) —
+`apps/web/src/routes/room.$roomId.tsx`
 
 ---
 
@@ -518,7 +498,7 @@ All URLs accessed **2026-09-12**.
 - **TeXlyre's licence** is stated as AGPL-3.0 by its ecosystem page (citing the SwiftLaTeX AGPL
   dependency); the GitHub licence API call failed during research. Its `codemirror-lang-latex`
   package is AGPL regardless. Do not copy TeXlyre code into a non-AGPL product without review; the
-  *architecture* (not the code) is what is cited here.
+  _architecture_ (not the code) is what is cited here.
 - **`@typeward/texlive-wasm` is pre-alpha** and its README says the npm `latest` tag points at a
   prerelease. `texlyre-busytex` is described as experimental and "sustained work is not guaranteed."
   WASM compile-in-browser carries large asset weights (~32 MB WASM + 90–400 MB data) and needs

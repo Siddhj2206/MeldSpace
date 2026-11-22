@@ -59,9 +59,7 @@ function CheckpointRow({
           />
           <span className="truncate text-body-sm text-foreground">{checkpoint.authorName}</span>
         </div>
-        <div className="line-clamp-2 text-body-sm text-muted-foreground">
-          {summary(checkpoint)}
-        </div>
+        <div className="line-clamp-2 text-body-sm text-muted-foreground">{summary(checkpoint)}</div>
       </div>
       <button
         type="button"
@@ -74,11 +72,7 @@ function CheckpointRow({
   );
 }
 
-export function HistoryPanel({
-  onInspect,
-}: {
-  onInspect: (checkpoint: CheckpointMeta) => void;
-}) {
+export function HistoryPanel({ onInspect }: { onInspect: (checkpoint: CheckpointMeta) => void }) {
   const { checkpoints, name, awayIds } = useRoom();
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -174,7 +168,9 @@ export function HistoryPanel({
         <span className="size-1.75 shrink-0 rounded-full bg-success" />
         <span className="font-mono text-[10px] tracking-eyebrow text-muted-foreground">
           {checkpoints.length} CHECKPOINT{checkpoints.length === 1 ? "" : "S"} ON THIS DEVICE
-          {checkpoints.length > 0 ? ` · SINCE ${formatDay(checkpoints[0]!.createdAt).toUpperCase()}` : ""}
+          {checkpoints.length > 0
+            ? ` · SINCE ${formatDay(checkpoints[0]!.createdAt).toUpperCase()}`
+            : ""}
         </span>
       </div>
     </div>

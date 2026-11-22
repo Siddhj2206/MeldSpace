@@ -58,7 +58,7 @@ database stores neither. There is no owner. Canonical: `CONTEXT.md`; rationale:
 
 ## Why not just run a server
 
-Self-hosting and privacy are about *who holds the data*, and a self-hosted central server
+Self-hosting and privacy are about _who holds the data_, and a self-hosted central server
 delivers that too. The P2P-specific benefits are availability under partition, no single
 point of failure or control, survival of the creator, locality, and operator cost.
 

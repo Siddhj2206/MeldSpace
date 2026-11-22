@@ -114,105 +114,107 @@ export function RoomRail({
       ) : null}
 
       {panel !== "history" ? (
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {panel === "details" ? (
-          <div className="flex flex-col gap-3.5">
-            <Row label="Room" value={roomName} />
-            <Row label="Artifact" value={artifact?.title ?? "—"} />
-            <Row label="Type" value={artifact ? SURFACE_LABEL[artifact.kind] : "—"} />
-            <Row label="Source" value={artifact?.sourceKey ?? "—"} />
-            <Row
-              label="Storage"
-              value={
-                status.persisted
-                  ? status.queued > 0
-                    ? `${status.queued} queued`
-                    : "Saved locally"
-                  : "Loading…"
-              }
-            />
-            <Row
-              label="Network"
-              value={isOnline ? `${mesh.webrtc} webrtc · ${mesh.bc} bc` : "Offline"}
-            />
-            <Row
-              label="Join code"
-              value={
-                meta?.joinCode ? (
-                  <button
-                    type="button"
-                    onClick={copyCode}
-                    className="font-mono tracking-[0.08em] text-foreground hover:text-signal"
-                  >
-                    {copied ? "Copied" : meta.joinCode}
-                  </button>
-                ) : (
-                  "—"
-                )
-              }
-            />
-            <Row label="Room id" value={<span className="font-mono text-[12px]">{roomId}</span>} />
-            <div className="h-px w-full bg-border" />
-            <div className="font-mono text-eyebrow tracking-eyebrow text-subtle-foreground uppercase">
-              Versions
-            </div>
-            <div className="text-body-sm text-subtle-foreground">
-              {checkpoints.length === 0
-                ? "No checkpoints yet — the room checkpoints itself after a quiet minute."
-                : `${checkpoints.length} checkpoint${checkpoints.length === 1 ? "" : "s"} on this device.`}
-            </div>
-          </div>
-        ) : null}
-
-        {panel === "people" ? (
-          <div className="flex flex-col gap-2">
-            {roster.length === 0 ? (
-              <div className="text-body-sm text-subtle-foreground">
-                No one else yet. Share the room to bring a peer in.
-              </div>
-            ) : (
-              roster.map((entry) => {
-                const isCoordinator =
-                  coordinator !== null &&
-                  entry.clientId !== undefined &&
-                  entry.clientId === coordinator.clientId;
-                return (
-                  <div key={entry.key} className="flex h-8 items-center gap-2.5">
-                    <span
-                      className="flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-[#0B0C0D]"
-                      style={{ backgroundColor: entry.color }}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {panel === "details" ? (
+            <div className="flex flex-col gap-3.5">
+              <Row label="Room" value={roomName} />
+              <Row label="Artifact" value={artifact?.title ?? "—"} />
+              <Row label="Type" value={artifact ? SURFACE_LABEL[artifact.kind] : "—"} />
+              <Row label="Source" value={artifact?.sourceKey ?? "—"} />
+              <Row
+                label="Storage"
+                value={
+                  status.persisted
+                    ? status.queued > 0
+                      ? `${status.queued} queued`
+                      : "Saved locally"
+                    : "Loading…"
+                }
+              />
+              <Row
+                label="Network"
+                value={isOnline ? `${mesh.webrtc} webrtc · ${mesh.bc} bc` : "Offline"}
+              />
+              <Row
+                label="Join code"
+                value={
+                  meta?.joinCode ? (
+                    <button
+                      type="button"
+                      onClick={copyCode}
+                      className="font-mono tracking-[0.08em] text-foreground hover:text-signal"
                     >
-                      {initials(entry.name)}
-                    </span>
-                    <span className="truncate text-body-sm text-foreground">
-                      {entry.name}
-                      {entry.isSelf ? (
-                        <span className="ml-1.5 text-micro text-subtle-foreground">you</span>
-                      ) : null}
-                    </span>
-                    <span className="flex-1" />
-                    {isCoordinator ? (
-                      <span className="font-mono text-[10px] tracking-[0.08em] text-signal">
-                        COORD · R{coordinator.epoch}
-                      </span>
-                    ) : (
-                      <span
-                        className={cn(
-                          "font-mono text-[10px] tracking-[0.08em]",
-                          entry.present ? "text-signal" : "text-subtle-foreground",
-                        )}
-                      >
-                        {entry.present ? "PRESENT" : "PEER"}
-                      </span>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        ) : null}
+                      {copied ? "Copied" : meta.joinCode}
+                    </button>
+                  ) : (
+                    "—"
+                  )
+                }
+              />
+              <Row
+                label="Room id"
+                value={<span className="font-mono text-[12px]">{roomId}</span>}
+              />
+              <div className="h-px w-full bg-border" />
+              <div className="font-mono text-eyebrow tracking-eyebrow text-subtle-foreground uppercase">
+                Versions
+              </div>
+              <div className="text-body-sm text-subtle-foreground">
+                {checkpoints.length === 0
+                  ? "No checkpoints yet — the room checkpoints itself after a quiet minute."
+                  : `${checkpoints.length} checkpoint${checkpoints.length === 1 ? "" : "s"} on this device.`}
+              </div>
+            </div>
+          ) : null}
 
-      </div>
+          {panel === "people" ? (
+            <div className="flex flex-col gap-2">
+              {roster.length === 0 ? (
+                <div className="text-body-sm text-subtle-foreground">
+                  No one else yet. Share the room to bring a peer in.
+                </div>
+              ) : (
+                roster.map((entry) => {
+                  const isCoordinator =
+                    coordinator !== null &&
+                    entry.clientId !== undefined &&
+                    entry.clientId === coordinator.clientId;
+                  return (
+                    <div key={entry.key} className="flex h-8 items-center gap-2.5">
+                      <span
+                        className="flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-[#0B0C0D]"
+                        style={{ backgroundColor: entry.color }}
+                      >
+                        {initials(entry.name)}
+                      </span>
+                      <span className="truncate text-body-sm text-foreground">
+                        {entry.name}
+                        {entry.isSelf ? (
+                          <span className="ml-1.5 text-micro text-subtle-foreground">you</span>
+                        ) : null}
+                      </span>
+                      <span className="flex-1" />
+                      {isCoordinator ? (
+                        <span className="font-mono text-[10px] tracking-[0.08em] text-signal">
+                          COORD · R{coordinator.epoch}
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "font-mono text-[10px] tracking-[0.08em]",
+                            entry.present ? "text-signal" : "text-subtle-foreground",
+                          )}
+                        >
+                          {entry.present ? "PRESENT" : "PEER"}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : null}
+        </div>
       ) : null}
 
       <CheckpointInspect

@@ -24,7 +24,7 @@ now gives away a LaTeX-native workspace with unlimited collaborators and GPT-5.2
 "supports Typst".
 
 **Format is not the wedge, either.** LaTeX is table stakes because arXiv and most
-publishers require LaTeX *source*, not just a PDF. Typst is technically the nicest thing
+publishers require LaTeX _source_, not just a PDF. Typst is technically the nicest thing
 to put in a browser (small WASM, milliseconds), but arXiv and most publisher pipelines do
 not accept Typst source yet, so a Typst-only tool risks a dead end at submission time.
 Markdown + Pandoc is the most browser-tractable and most differentiated authoring model,
@@ -45,25 +45,26 @@ server-side) version of history. Be honest about that.
 
 ### 1. TeXlyre is a direct, live "P2P Overleaf" — verified
 
-TeXlyre (`TeXlyre/texlyre`) describes itself as *"a local-first LaTeX & Typst web editor
-with real-time collaboration & offline support."* It is, for practical purposes, exactly
+TeXlyre (`TeXlyre/texlyre`) describes itself as _"a local-first LaTeX & Typst web editor
+with real-time collaboration & offline support."_ It is, for practical purposes, exactly
 the product this pivot describes.
 
 **Repo facts (GitHub API, 2026-09-12):**
 
-| Field | Value |
-| --- | --- |
-| Created | 2025-07-06 |
-| Last push | 2026-09-08 |
-| Stars / forks | **945 / 69** |
-| Open issues | 5 |
-| Language | TypeScript |
-| License | **AGPL-3.0** |
-| Latest release | **v0.12.0 (2026-09-06)**; monthly-ish release cadence since late 2025 |
-| Homepage | https://texlyre.github.io/texlyre/ |
-| Hosted instance | https://texlyre.org/texlyre (linked from official docs) |
+| Field           | Value                                                                 |
+| --------------- | --------------------------------------------------------------------- |
+| Created         | 2025-07-06                                                            |
+| Last push       | 2026-09-08                                                            |
+| Stars / forks   | **945 / 69**                                                          |
+| Open issues     | 5                                                                     |
+| Language        | TypeScript                                                            |
+| License         | **AGPL-3.0**                                                          |
+| Latest release  | **v0.12.0 (2026-09-06)**; monthly-ish release cadence since late 2025 |
+| Homepage        | https://texlyre.github.io/texlyre/                                    |
+| Hosted instance | https://texlyre.org/texlyre (linked from official docs)               |
 
 **Stack (from README + docs):**
+
 - React + TypeScript; CodeMirror 6 editor; PDF.js viewer.
 - **Yjs CRDTs** for conflict-free merge; **WebRTC peer-to-peer** synchronisation
   (`y-webrtc`-based signalling); **IndexedDB** local persistence for offline editing.
@@ -83,6 +84,7 @@ public hosted instance and a self-host infrastructure repo. This is the exact pi
 the candidate pivot, already shipped.
 
 **Where TeXlyre is thin (the only opening): [inference]**
+
 - The docs describe local persistence, Git sync, exports, and backups, but **no
   first-class durable checkpoint/rewind UI** and no "what changed while I was away"
   surface. The Git integration is the closest thing to history; it is file-oriented, not
@@ -91,7 +93,7 @@ the candidate pivot, already shipped.
 - No coordinator / authority / epoch concept. Collaboration is flat and peer-to-peer;
   there is no "who sequences membership and checkpoints" role, because TeXlyre does not
   need one.
-- No explicit guarantee language around offline convergence as a *product* story; it is
+- No explicit guarantee language around offline convergence as a _product_ story; it is
   framed as a capability, not the thesis.
 
 **Strategic note:** TeXlyre is **AGPL-3.0**. If MeldSpace wanted to build here, the
@@ -126,7 +128,7 @@ premium-gated history and Git, server dependence, and no genuine offline mode.
   search and citation insertion, image/whiteboard-to-LaTeX, compile-error fixing.
 - Per one detailed third-party review, Prism can also summarise co-author changes in
   natural language ("what did my co-authors change while I was gone?") — i.e. the
-  "while you were away" *surface* already exists in a free competitor, albeit
+  "while you were away" _surface_ already exists in a free competitor, albeit
   AI-generated and cloud-only. **[secondary source]**
 - Cloud-only, account-required, no offline/P2P/local-first, and it does not solve data
   sovereignty or connectivity.
@@ -146,9 +148,9 @@ This matters because the pivot's implied thesis — "Overleaf is expensive and c
 ### 5. Authorea is effectively gone as an authoring tool
 
 Authorea was acquired by Atypon/Wiley (2018) and is now a **preprint archive**, not a
-collaborative editor. Authorea's own site states: *"Until further notice, we are only
+collaborative editor. Authorea's own site states: _"Until further notice, we are only
 supporting the posting of new preprints via the Under Review service. Authoring new or
-updating existing preprints is currently unavailable."* Wiley migrated content to its
+updating existing preprints is currently unavailable."_ Wiley migrated content to its
 Research Exchange Preprints platform (2026). **Not a live competitor** for authoring.
 
 ### 6. Curvenote — cloud CMS + local CLI, Markdown/MyST, not LaTeX-native P2P
@@ -175,25 +177,25 @@ Research Exchange Preprints platform (2026). **Not a live competitor** for autho
 - Collaboration is asynchronous via Git/GitHub, not real-time; setup cost is real
   (~an hour, multi-GB TeX distribution, or Tectonic for lighter installs).
 - This is the workflow that already satisfies "offline + version control + no Overleaf",
-  for people willing to run a terminal. Any P2P product competes with *free and working*,
+  for people willing to run a terminal. Any P2P product competes with _free and working_,
   not just with Overleaf.
 
 ### 9. Adjacent academic-authoring tools worth naming
 
-| Tool | Model | Relevant to MeldSpace |
-| --- | --- | --- |
-| **Fidus Writer** (AGPL) | Server-based Django real-time collaborative academic editor; citations/formulas; exports LaTeX/DOCX/JATS; Git plugin | Real-time + academic, but server-authoritative, no offline/P2P |
-| **Manubot** (BSD) | Markdown + Git/GitHub + Pandoc + CI; citation-by-identifier; automated builds | Async only; no real-time/offline editor; strong provenance story |
-| **Stencila v2** (Rust, Automerge CRDT) | Local-first CRDT documents, version history/branching, JATS/LaTeX export; **alpha** | Closest *architecture* cousin; not LaTeX/paper-first, not a browser room |
-| **ScienHub** | Cloud real-time LaTeX + Git + AI (listed in the Yjs ecosystem) | Cloud, account-based |
-| **Litewrite** (HKUDS) | Next.js + Yjs WebSocket + Redis; version-history snapshots; AI | Server-authoritative; shows history UI is expected |
-| **texleaf** (MIT) | Self-hosted Overleaf clone: FastAPI + Yjs/pycrdt + TeX Live | Server-based real-time |
-| **Scribe** (`sunnyallana/scribe`, AGPL) | Self-host Rust + React/Tauri; Yjs over WebSocket; offline desktop SQLite mirror; voice; AI | Offline-first desktop, but server-relayed collaboration, not P2P |
-| **ClaTeX** | Next.js + Monaco + Yjs + y-sweet + Claude + texlab LSP | Server-relayed |
-| **TexFlow** | Go microservices + Yjs + Kong/MinIO | Server-based |
-| **Oleafly** | Local-first **desktop**, Git-native, LaTeX/Typst/Markdown, bundled Tectonic | No live multi-user; collaboration = Git |
-| **Opal** (ex-Tectonic Editor) | Offline-first desktop LaTeX, embedded Tectonic, optional AI | Single-user |
-| **CollabTeX** | SvelteKit + Yjs/WebRTC + IndexedDB; client-side "compile" currently jsPDF placeholder | Closest demo-shaped P2P clone; appears small/unproven **[activity unverified]** |
+| Tool                                    | Model                                                                                                                | Relevant to MeldSpace                                                           |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **Fidus Writer** (AGPL)                 | Server-based Django real-time collaborative academic editor; citations/formulas; exports LaTeX/DOCX/JATS; Git plugin | Real-time + academic, but server-authoritative, no offline/P2P                  |
+| **Manubot** (BSD)                       | Markdown + Git/GitHub + Pandoc + CI; citation-by-identifier; automated builds                                        | Async only; no real-time/offline editor; strong provenance story                |
+| **Stencila v2** (Rust, Automerge CRDT)  | Local-first CRDT documents, version history/branching, JATS/LaTeX export; **alpha**                                  | Closest _architecture_ cousin; not LaTeX/paper-first, not a browser room        |
+| **ScienHub**                            | Cloud real-time LaTeX + Git + AI (listed in the Yjs ecosystem)                                                       | Cloud, account-based                                                            |
+| **Litewrite** (HKUDS)                   | Next.js + Yjs WebSocket + Redis; version-history snapshots; AI                                                       | Server-authoritative; shows history UI is expected                              |
+| **texleaf** (MIT)                       | Self-hosted Overleaf clone: FastAPI + Yjs/pycrdt + TeX Live                                                          | Server-based real-time                                                          |
+| **Scribe** (`sunnyallana/scribe`, AGPL) | Self-host Rust + React/Tauri; Yjs over WebSocket; offline desktop SQLite mirror; voice; AI                           | Offline-first desktop, but server-relayed collaboration, not P2P                |
+| **ClaTeX**                              | Next.js + Monaco + Yjs + y-sweet + Claude + texlab LSP                                                               | Server-relayed                                                                  |
+| **TexFlow**                             | Go microservices + Yjs + Kong/MinIO                                                                                  | Server-based                                                                    |
+| **Oleafly**                             | Local-first **desktop**, Git-native, LaTeX/Typst/Markdown, bundled Tectonic                                          | No live multi-user; collaboration = Git                                         |
+| **Opal** (ex-Tectonic Editor)           | Offline-first desktop LaTeX, embedded Tectonic, optional AI                                                          | Single-user                                                                     |
+| **CollabTeX**                           | SvelteKit + Yjs/WebRTC + IndexedDB; client-side "compile" currently jsPDF placeholder                                | Closest demo-shaped P2P clone; appears small/unproven **[activity unverified]** |
 
 The pattern is unmistakable: across 2024–2026 there is a dense cluster of "collaborative
 LaTeX in the browser" projects. Most are server-relayed; a few are local-first; TeXlyre is
@@ -260,7 +262,7 @@ arXiv accept Typst source. Great as an additional format; weak as the whole prod
   must still provide a first-class LaTeX/PDF export path, and often a "fix the generated
   `.tex`" workflow.
 
-**Verdict:** The most interesting *authoring* model and the most defensible from a
+**Verdict:** The most interesting _authoring_ model and the most defensible from a
 merge/diff perspective, but it still ends at "export to submittable LaTeX", which is a
 large build and only a partial answer.
 
@@ -268,6 +270,7 @@ large build and only a partial answer.
 
 If MeldSpace builds an editor at all: **target LaTeX (with Typst as a secondary format and
 Markdown as an optional authoring front-end that exports LaTeX)**. Rationale:
+
 - LaTeX is the hard constraint imposed by venues and arXiv; skipping it forfeits the
   endpoint.
 - Typst is a nice-to-have that TeXlyre already covers and that publishers do not yet
@@ -291,13 +294,13 @@ convergence; rooms; no-account join.
 
 Classify each as **feature vs product**:
 
-| Asset | What it really is | Sellable alone? |
-| --- | --- | --- |
-| Checkpoint history + rewind | **Table stakes.** Overleaf (premium), Google Docs, Typst Git sync, Litewrite, and Git all have some form. | No |
-| "While you were away" | **Differentiation surface**, but Overleaf "compare versions" and Prism's AI change summary already gesture at it. | Only as a workflow |
-| Coordinator handoff / epoch | **Internal mechanism**, invisible to users. | No — it is architecture, not value |
-| Offline convergence | **Infrastructure.** Only sells if the user's pain is acute (fieldwork, travel, poor connectivity, data sovereignty). | Only as positioning |
-| Rooms + no-account join | **Growth/access feature.** Real pain for external co-authors, PIs, industry collaborators. | As a wedge, not a moat |
+| Asset                       | What it really is                                                                                                    | Sellable alone?                    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Checkpoint history + rewind | **Table stakes.** Overleaf (premium), Google Docs, Typst Git sync, Litewrite, and Git all have some form.            | No                                 |
+| "While you were away"       | **Differentiation surface**, but Overleaf "compare versions" and Prism's AI change summary already gesture at it.    | Only as a workflow                 |
+| Coordinator handoff / epoch | **Internal mechanism**, invisible to users.                                                                          | No — it is architecture, not value |
+| Offline convergence         | **Infrastructure.** Only sells if the user's pain is acute (fieldwork, travel, poor connectivity, data sovereignty). | Only as positioning                |
+| Rooms + no-account join     | **Growth/access feature.** Real pain for external co-authors, PIs, industry collaborators.                           | As a wedge, not a moat             |
 
 The uncomfortable conclusion: MeldSpace's differentiating mechanisms are mostly invisible,
 and its visible surfaces are things competitors already have. "P2P Overleaf" is a losing
@@ -325,30 +328,33 @@ paper's change ledger across rounds, that works offline and without accounts."**
 ### 16. Ranked wedges
 
 **Wedge 1 (recommended): the revision-round ledger — "what changed since we submitted".**
+
 - Product shape: keep the paper as plain LaTeX files (bring your own repo/Overleaf
   export); MeldSpace provides an offline-first room around it with **named checkpoints per
   round**, a readable **change set between any two checkpoints**, **rewind**, and
   **"while you were away"** for a given co-author. No account needed to join a round.
 - Why it fits: it is the only wedge where the checkpoint log, offline convergence,
-  coordinator (who seals a round), and no-account join are all load-bearing *and* visible.
+  coordinator (who seals a round), and no-account join are all load-bearing _and_ visible.
 - Honesty: history/diff is a **feature**, and Overleaf already sells a premium version.
-  What makes it a *product* is the specific job (multi-round, multi-institution,
+  What makes it a _product_ is the specific job (multi-round, multi-institution,
   low-connectivity, external co-authors) and the offline/no-account model. It is a real
   niche, not a mass market. **Confidence: medium.** The wedge is defensible only if the
   team commits to the revision job, not to "an editor".
 
 **Wedge 2: no-account, offline-tolerant writing rooms for the messy co-author graph.**
+
 - Product shape: a co-author opens a link/QR and co-edits immediately, on a plane or on
   hotel Wi-Fi, with no signup; the room persists and converges when connectivity returns.
 - Why it fits: it exploits rooms + offline + no-account directly, and it attacks Overleaf's
   free-tier 1-collaborator limit and its cloud dependence.
 - Honesty: **this is closer to go-to-market than a moat.** TeXlyre already joins by URL
-  with optional accounts and works offline. It differentiates a *campaign*, not the
+  with optional accounts and works offline. It differentiates a _campaign_, not the
   software. **Confidence: medium-low as a standalone product; strong as the top of the
   funnel for Wedge 1.**
 
 **Wedge 3: coordinator-governed lab/group projects.**
-- Product shape: a PI or a group owns the room's *sequencing* (membership, sealed
+
+- Product shape: a PI or a group owns the room's _sequencing_ (membership, sealed
   checkpoints) without owning the content; authority transfers when they leave, and a
   returning stale peer cannot reassert it.
 - Why it fits: it is the one place MeldSpace's epoch/coordinator design is genuinely unique
@@ -366,8 +372,8 @@ paper's change ledger across rounds, that works offline and without accounts."**
 - **Cut file-sync / team-drive generalisation.** That is Dropbox/Drive/CoCalc space.
 - **Keep** the checkpoint log, offline convergence, and no-account join — but point them
   at the revision job, not at "authoring".
-- **If even the revision wedge feels too thin,** the honest conclusion is: *paper writing
-  is a crowded destination.* The room primitive is strong, but its best use may be a
+- **If even the revision wedge feels too thin,** the honest conclusion is: _paper writing
+  is a crowded destination._ The room primitive is strong, but its best use may be a
   different vertical with the same shape (fieldwork, disaster response, research data
   collection, classroom labs) or a horizontal "offline-durable collaboration rooms"
   infrastructure play. Do not force it into paper writing just because LaTeX is familiar.
@@ -377,7 +383,7 @@ paper's change ledger across rounds, that works offline and without accounts."**
 ## Recommendation
 
 1. **Do not enter as "a local-first / P2P Overleaf."** TeXlyre already is that, is
-   AGPL-3.0, NLnet-funded, actively releasing, supports LaTeX *and* Typst with in-browser
+   AGPL-3.0, NLnet-funded, actively releasing, supports LaTeX _and_ Typst with in-browser
    compilation, joins by URL without accounts, and works offline. Prism makes free cloud
    LaTeX + AI the baseline, and Overleaf owns the default. The positioning is dead on
    arrival.
@@ -405,6 +411,7 @@ paper's change ledger across rounds, that works offline and without accounts."**
 All URLs accessed **2026-09-12**.
 
 **TeXlyre (primary)**
+
 - Repo: https://github.com/TeXlyre/texlyre
 - GitHub API metadata (stars 945, forks 69, AGPL-3.0, created 2025-07-06): https://api.github.com/repos/TeXlyre/texlyre
 - Releases (v0.12.0, 2026-09-06): https://github.com/TeXlyre/texlyre/releases
@@ -419,6 +426,7 @@ All URLs accessed **2026-09-12**.
 - SwiftLaTeX: https://github.com/SwiftLaTeX/SwiftLaTeX
 
 **Overleaf (primary)**
+
 - Plan limits (10s free compile, 7 MB, 2 MB file): https://docs.overleaf.com/getting-started/free-and-premium-plans/plan-limits
 - Premium features (collaborators, track changes, full history): https://docs.overleaf.com/getting-started/free-and-premium-plans/premium-features
 - History and versioning (24h free / full premium, compare, restore): https://docs.overleaf.com/writing-and-editing/history-and-versioning
@@ -428,6 +436,7 @@ All URLs accessed **2026-09-12**.
 - CE Git bridge is not supported (issue #782): https://github.com/overleaf/overleaf/issues/782
 
 **Prism / Crixet (primary + secondary)**
+
 - OpenAI Prism product page: https://openai.com/prism/
 - OpenAI launch post (GPT-5.2, unlimited collaborators, built on Crixet): https://openai.com/index/introducing-prism/
 - Crixet "now Prism": https://crixet.com/
@@ -435,31 +444,37 @@ All URLs accessed **2026-09-12**.
 - [secondary] third-party feature review with AI change-summary claim: https://ksml4.com/openai-prism-an-excellent-free-alternative-to-overleaf-for-scientific-writing-and-collaboration/
 
 **CoCalc (primary)**
+
 - Repo/README: https://github.com/sagemathinc/cocalc
 - OnPrem docs/version history (Conat, new LaTeX editor Jan 2026): https://onprem.cocalc.com/
 - LaTeX editor docs (TimeTravel, Side Chat; comments not yet implemented): https://doc.cocalc.com/latex
 
 **Authorea (primary + secondary)**
+
 - Authorea site notice (authoring unavailable): https://www.authorea.com/
 - [secondary] Wikipedia status (Wiley Research Exchange migration, May 2026): https://en.wikipedia.org/wiki/Authorea
 
 **Curvenote (primary)**
+
 - Writing docs: https://curvenote.com/docs/write/index
 - CLI docs (MIT, local sync/export): https://curvenote.com/docs/cli
 - Repo: https://github.com/curvenote/curvenote
 
 **Compile services (primary)**
+
 - TeXLive.net server docs: https://davidcarlisle.github.io/latexcgi/
 - TeXLive.net upgrade news (TeX Live 2025, DANTE): https://www.latex-project.org/news/2025/03/29/new-texlive-net/
 - latexonline.cc: https://latexonline.cc/ ; repo: https://github.com/aslushnikov/latex-online
 
 **VS Code / Git workflows (primary + secondary)**
+
 - LaTeX Workshop: https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop
 - GitHub Actions LaTeX template: https://github.com/paulbrenker/tex-github-workflow
 - [secondary] local workflow write-ups: https://blog.shuvangkardas.com/overleaf-local-alternative-latex-in-vscode ,
   https://leolavaur.re/posts/latex_workflow/ (git-latexdiff)
 
 **Adjacent tools (primary)**
+
 - Fidus Writer: https://www.fiduswriter.org/ ; repo: https://github.com/fiduswriter/fiduswriter
 - Manubot: https://manubot.org/ ; repo: https://github.com/manubot/manubot ;
   paper: https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007128
@@ -476,6 +491,7 @@ All URLs accessed **2026-09-12**.
 - Yjs ecosystem list (incl. ScienHub, y-webrtc, y-indexeddb): https://github.com/yjs/yjs
 
 **Typst (primary)**
+
 - Compiler repo (Apache-2.0, active): https://github.com/typst/typst
 - typst.ts repo (Apache-2.0, active): https://github.com/Myriad-Dreamin/typst.ts
 - typst.ts npm metadata (v0.7.0): https://registry.npmjs.org/@myriaddreamin/typst.ts/latest
@@ -490,6 +506,7 @@ All URLs accessed **2026-09-12**.
 - Community editor example: https://github.com/Mapaor/typst-online-editor
 
 **arXiv / publishing constraints (primary)**
+
 - arXiv TeX submission (TeX Live 2023/2025, source required): https://info.arxiv.org/help/submit_tex.html
 - arXiv accepted formats: https://info.arxiv.org/help/submit/index.html
 - Typst forum: lobbying publishers (Typst source not accepted; conversion burden):
@@ -501,6 +518,7 @@ All URLs accessed **2026-09-12**.
 - [secondary] "How to submit Typst to arXiv" (convert-and-submit): https://www.typetex.app/guides/how-to-submit-typst-to-arxiv
 
 **Pandoc (primary)**
+
 - pandoc-wasm repo (official Pandoc 3.9 WASM): https://github.com/pandoc/pandoc-wasm
 - Browser demo: https://pandoc.github.io/pandoc-wasm/
 - npm: https://www.npmjs.com/package/pandoc-wasm

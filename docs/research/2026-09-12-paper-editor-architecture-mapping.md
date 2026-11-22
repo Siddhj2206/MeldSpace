@@ -26,7 +26,7 @@ judgement, not something read off disk or a cited source.
   uncommitted WIP) already hosts surfaces and a history rail; it needs its flat artifact model
   replaced by a file tree.
 - **The planned #6 checkpoint log is not optional any more — it is the product's version
-  history.** A LaTeX paper is *the* thing users already manage with Git, so #6/#7 become the
+  history.** A LaTeX paper is _the_ thing users already manage with Git, so #6/#7 become the
   strongest reuse story in the pivot. The `HistoryStore` interface should store a Yjs state
   update per checkpoint (content-addressed), and "rewind" should be a normal forward edit that
   writes the old content back.
@@ -80,7 +80,7 @@ rewritten by the WIP shell branch).
   `registerType: "autoUpdate"`, manifest, `devOptions.enabled: false`.
 - `apps/web/vite-plugins/pwa-service-worker.ts`: a custom post-build Workbox pass. `pwaWorkbox`
   precaches `**/*.{js,css,html,svg,png,ico,webmanifest,woff,woff2}`, `navigateFallback:
-  "/_shell.html"`, denylist `/trpc`, `/api`, `/_serverFn`.
+"/_shell.html"`, denylist `/trpc`, `/api`, `/_serverFn`.
 - `apps/web/src/components/pwa-register.tsx`: dynamic `virtual:pwa-register`.
 - `apps/web/src/router.tsx` and `apps/web/src/routes/__root.tsx`: client-owned QueryClient, tRPC
   HTTP batch link, PWA manifest link, `.dark` pinned on `<html>`.
@@ -93,8 +93,8 @@ is asset caching (see §6.4).
 ### 1.3 The control plane (#4)
 
 - `packages/db/src/schema/room.ts`: `room` / `device` / `member` / `invite`. The header comment
-  is explicit: *"No room content (no document/canvas/CRDT/blob columns). No authority columns
-  (no owner/coordinator/epoch)."* `device.userId` nullable; `member` keys on `deviceId`, not
+  is explicit: _"No room content (no document/canvas/CRDT/blob columns). No authority columns
+  (no owner/coordinator/epoch)."_ `device.userId` nullable; `member` keys on `deviceId`, not
   `doc.clientID`.
 - `packages/db/src/schema/auth.ts`: Better Auth `user` / `session` / `account` / `verification`.
 - `packages/api/src/routers/`: `room.create | byId | join`, `device.register`, `member.list`.
@@ -104,7 +104,7 @@ is asset caching (see §6.4).
 
 **No schema or API change is required by the pivot.** "Create room" becomes "create project";
 `room.name` becomes the paper title; the join flow is the invite flow. The only content-shaped
-thing that *could* tempt a schema change — the main `.tex` filename or engine choice — must stay
+thing that _could_ tempt a schema change — the main `.tex` filename or engine choice — must stay
 out of Postgres to preserve invariant #3 (no room content in the control plane). Store project
 metadata in the CRDT.
 
@@ -153,18 +153,18 @@ the pivot — do not rebuild it.**
 
 ## 2. The pivot as a mapping
 
-| MeldSpace today | LaTeX-editor pivot | New invariant |
-| --- | --- | --- |
-| Room | Paper project | A project is the shared distributed object. |
-| Room id (`/room/$roomId`) | Project id (`/room/$roomId`, keep the URL shape) | Same URL, no migration. |
-| One `Y.Text("content")` | `Y.Map<Y.Text>` keyed by file path (`main.tex`, `sections/intro.tex`, `refs.bib`) | One project = one `Y.Doc` (extend #11's rule). |
-| Markdown editor surface | LaTeX editor surface (`codemirror-lang-latex`) | Editor reads the active file's `Y.Text`. |
-| (none) | Compiled-PDF preview surface | PDF is derived, never a Yjs type; bytes are content-addressed. |
-| Flat artifact list (Documents/Files/Boards/Comments) | Project file tree | The sidebar shows paths, not artifact kinds. |
-| Checkpoint log (#6, unbuilt) | Paper version history | Every "submitted draft" is a checkpoint; inspect + restore. |
-| Image blob transport (#8, unbuilt) | Figure / asset channel | `\includegraphics` bytes stay out of the CRDT. |
-| Coordinator + epoch (#10, unbuilt) | Who named the checkpoint / who admits a peer | Unchanged. |
-| Excalidraw board (#11) | Diagrams (optional) | **Out of minimal scope.** |
+| MeldSpace today                                      | LaTeX-editor pivot                                                                | New invariant                                                  |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Room                                                 | Paper project                                                                     | A project is the shared distributed object.                    |
+| Room id (`/room/$roomId`)                            | Project id (`/room/$roomId`, keep the URL shape)                                  | Same URL, no migration.                                        |
+| One `Y.Text("content")`                              | `Y.Map<Y.Text>` keyed by file path (`main.tex`, `sections/intro.tex`, `refs.bib`) | One project = one `Y.Doc` (extend #11's rule).                 |
+| Markdown editor surface                              | LaTeX editor surface (`codemirror-lang-latex`)                                    | Editor reads the active file's `Y.Text`.                       |
+| (none)                                               | Compiled-PDF preview surface                                                      | PDF is derived, never a Yjs type; bytes are content-addressed. |
+| Flat artifact list (Documents/Files/Boards/Comments) | Project file tree                                                                 | The sidebar shows paths, not artifact kinds.                   |
+| Checkpoint log (#6, unbuilt)                         | Paper version history                                                             | Every "submitted draft" is a checkpoint; inspect + restore.    |
+| Image blob transport (#8, unbuilt)                   | Figure / asset channel                                                            | `\includegraphics` bytes stay out of the CRDT.                 |
+| Coordinator + epoch (#10, unbuilt)                   | Who named the checkpoint / who admits a peer                                      | Unchanged.                                                     |
+| Excalidraw board (#11)                               | Diagrams (optional)                                                               | **Out of minimal scope.**                                      |
 
 ---
 
@@ -174,46 +174,46 @@ Legend: **S** survives unchanged · **C** changes · **N** new.
 
 ### 3.1 Substrate, shell, platform
 
-| Piece | Path | Disposition | Note |
-| --- | --- | --- | --- |
-| P2P runtime | `apps/web/src/room/room-provider.tsx` | **S** (small C) | Add a project-store handle; optionally per-file docs later. |
-| Sync-status vocabulary | `apps/web/src/room/room-status.ts` | **S** | Add a compile status alongside; keep Local/Queued/Converged. |
-| Coordinator reader | `apps/web/src/room/coordinator.ts` | **S** | Fed by #10. |
-| Roster / identity / share | `roster.ts`, `identity.ts`, `share-dialog.tsx` | **S** | Share dialog = invite to project. |
-| Shell chrome | `room-shell.tsx` | **C** | `artifacts` currently hardcodes `[DOCUMENT_ARTIFACT]`; derive from the file tree. |
-| Sidebar | `room-sidebar.tsx` | **C** | Replace grouped artifact list with a file tree. |
-| Rail | `room-rail.tsx` | **C** | Details = project (main file, engine, compile); History becomes real (#7). |
-| Command palette | `command-palette.tsx` | **C** | Add compile / new file / go-to-file; enable "Create checkpoint". |
-| Icons | `room/icons.tsx` | **C** | Add `.tex`/`.bib`/`.pdf`/image glyphs. |
-| Artifact model | `apps/web/src/room/artifacts.ts` | **C** | Becomes the project/file model; keep the "surface ≠ data" separation. |
-| Surface registry | `apps/web/src/room/surfaces.tsx` | **C** | `document` → `latex`; add `pdf`, `image`. |
-| Room route | `apps/web/src/routes/room.$roomId.tsx` | **C** (cosmetic) | Works as-is; optionally rename `roomId` → `projectId`. |
-| SPA/PWA wiring | `vite.config.ts`, `vite-plugins/pwa-service-worker.ts`, `pwa-register.tsx`, `router.tsx`, `__root.tsx` | **S** (C for caching) | Cache the TeX engine (see §6.4). |
-| Shared UI primitives | `packages/ui/**` | **S** | Sidebar/tabs/dialog/command already added by #15. |
-| Design tokens | `packages/ui/src/styles/globals.css` | **S** | Quiet Room palette carries over unchanged. |
+| Piece                     | Path                                                                                                   | Disposition           | Note                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------- | --------------------------------------------------------------------------------- |
+| P2P runtime               | `apps/web/src/room/room-provider.tsx`                                                                  | **S** (small C)       | Add a project-store handle; optionally per-file docs later.                       |
+| Sync-status vocabulary    | `apps/web/src/room/room-status.ts`                                                                     | **S**                 | Add a compile status alongside; keep Local/Queued/Converged.                      |
+| Coordinator reader        | `apps/web/src/room/coordinator.ts`                                                                     | **S**                 | Fed by #10.                                                                       |
+| Roster / identity / share | `roster.ts`, `identity.ts`, `share-dialog.tsx`                                                         | **S**                 | Share dialog = invite to project.                                                 |
+| Shell chrome              | `room-shell.tsx`                                                                                       | **C**                 | `artifacts` currently hardcodes `[DOCUMENT_ARTIFACT]`; derive from the file tree. |
+| Sidebar                   | `room-sidebar.tsx`                                                                                     | **C**                 | Replace grouped artifact list with a file tree.                                   |
+| Rail                      | `room-rail.tsx`                                                                                        | **C**                 | Details = project (main file, engine, compile); History becomes real (#7).        |
+| Command palette           | `command-palette.tsx`                                                                                  | **C**                 | Add compile / new file / go-to-file; enable "Create checkpoint".                  |
+| Icons                     | `room/icons.tsx`                                                                                       | **C**                 | Add `.tex`/`.bib`/`.pdf`/image glyphs.                                            |
+| Artifact model            | `apps/web/src/room/artifacts.ts`                                                                       | **C**                 | Becomes the project/file model; keep the "surface ≠ data" separation.             |
+| Surface registry          | `apps/web/src/room/surfaces.tsx`                                                                       | **C**                 | `document` → `latex`; add `pdf`, `image`.                                         |
+| Room route                | `apps/web/src/routes/room.$roomId.tsx`                                                                 | **C** (cosmetic)      | Works as-is; optionally rename `roomId` → `projectId`.                            |
+| SPA/PWA wiring            | `vite.config.ts`, `vite-plugins/pwa-service-worker.ts`, `pwa-register.tsx`, `router.tsx`, `__root.tsx` | **S** (C for caching) | Cache the TeX engine (see §6.4).                                                  |
+| Shared UI primitives      | `packages/ui/**`                                                                                       | **S**                 | Sidebar/tabs/dialog/command already added by #15.                                 |
+| Design tokens             | `packages/ui/src/styles/globals.css`                                                                   | **S**                 | Quiet Room palette carries over unchanged.                                        |
 
 ### 3.2 Control plane (#4)
 
-| Piece | Path | Disposition |
-| --- | --- | --- |
-| Schema | `packages/db/src/schema/{auth,room}.ts` | **S** — no content/authority columns added. |
-| Routers | `packages/api/src/routers/{room,member,device}.ts` | **S** — `room.create` = create project; `room.join` = join project. |
-| Auth | `packages/auth/src/index.ts` | **S** |
-| Signaling | `apps/signaling/**` | **S** |
+| Piece     | Path                                               | Disposition                                                         |
+| --------- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| Schema    | `packages/db/src/schema/{auth,room}.ts`            | **S** — no content/authority columns added.                         |
+| Routers   | `packages/api/src/routers/{room,member,device}.ts` | **S** — `room.create` = create project; `room.join` = join project. |
+| Auth      | `packages/auth/src/index.ts`                       | **S**                                                               |
+| Signaling | `apps/signaling/**`                                | **S**                                                               |
 
 ### 3.3 Planned pieces
 
-| Issue | Piece | Disposition |
-| --- | --- | --- |
-| #6 | Checkpoint log / `HistoryStore` | **C → core.** Becomes paper version history. Store a content-addressed Yjs state update per checkpoint. |
-| #7 | History UI | **C.** Timeline + "what changed while you were away" + inspect; rewind becomes restore-backup. |
-| #8 | Content-addressed blob transport | **C.** Now carries figures (PNG/PDF/EPS) and optionally compiled PDFs. |
-| #9 | Image surface | **C.** Figure viewer; also inline `\includegraphics` preview. |
-| #10 | Coordinator + epoch | **S.** Coordinator names checkpoints, admits peers. |
-| #11/#14 | Excalidraw board | **Cut (deferred).** Diagrams are not the pivot; TeXlyre's answer is embedded TikZ/Draw.io, not a tldraw-style board. |
-| #15 | Room shell | **S.** Already built; extend with the file tree. |
-| #17 | Auth + join | **S.** Relabel to project create/join; still anonymous-device friendly. |
-| #20 | SPA + PWA | **S.** Add engine asset caching. |
+| Issue   | Piece                            | Disposition                                                                                                          |
+| ------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| #6      | Checkpoint log / `HistoryStore`  | **C → core.** Becomes paper version history. Store a content-addressed Yjs state update per checkpoint.              |
+| #7      | History UI                       | **C.** Timeline + "what changed while you were away" + inspect; rewind becomes restore-backup.                       |
+| #8      | Content-addressed blob transport | **C.** Now carries figures (PNG/PDF/EPS) and optionally compiled PDFs.                                               |
+| #9      | Image surface                    | **C.** Figure viewer; also inline `\includegraphics` preview.                                                        |
+| #10     | Coordinator + epoch              | **S.** Coordinator names checkpoints, admits peers.                                                                  |
+| #11/#14 | Excalidraw board                 | **Cut (deferred).** Diagrams are not the pivot; TeXlyre's answer is embedded TikZ/Draw.io, not a tldraw-style board. |
+| #15     | Room shell                       | **S.** Already built; extend with the file tree.                                                                     |
+| #17     | Auth + join                      | **S.** Relabel to project create/join; still anonymous-device friendly.                                              |
+| #20     | SPA + PWA                        | **S.** Add engine asset caching.                                                                                     |
 
 ### 3.4 Entirely new
 
@@ -407,7 +407,7 @@ This is an immediate, concrete gap:
 - BusyTeX assets are ~32 MB WASM + 90–400 MB data from GitHub Releases; a cold, never-warmed
   client cannot compile offline.
 - BusyTeX's example uses Emscripten's `EM_PRELOAD_CACHE` (IndexedDB) to persist downloaded
-  `.data` packages across reloads — offline compile is achievable only *after* a first online
+  `.data` packages across reloads — offline compile is achievable only _after_ a first online
   warm-up.
 
 Mitigation: self-host a curated engine bundle under `apps/web/public/core/` (same-origin, range
@@ -420,8 +420,8 @@ explicitly. This lands squarely on `pwa-service-worker.ts` and `vite.config.ts`.
 The frozen artboards have a Markdown editor (`meeting-notes.md`), artifact groups
 `DOCUMENTS/FILES/BOARDS/COMMENTS`, a board, an image/file surface, history, share, and auth.
 There is **no** file tree, no LaTeX source view, no PDF preview, no compile status/error surface.
-The Quiet Room *tokens* (instrument black, amber signal, identity hues, type scale) carry over
-intact; the *IA* does not.
+The Quiet Room _tokens_ (instrument black, amber signal, identity hues, type scale) carry over
+intact; the _IA_ does not.
 
 Mitigation: one new Paper artboard, "Project shell — LaTeX" (file tree + LaTeX editor +
 PDF pane + compile bar), authored locally per the MCP-budget method, then pushed in a handful of
@@ -451,44 +451,44 @@ the permanent design — large PDFs/figures will bloat the doc and break §6.1.
 
 ### Add
 
-| Path | Purpose |
-| --- | --- |
-| `apps/web/src/room/project/types.ts` | `Project`, `ProjectFile`, `FileKind`. |
-| `apps/web/src/room/project/project-store.ts` | `Y.Map<Y.Text>` CRUD, main-file resolution, compile snapshot. |
-| `apps/web/src/room/project/file-tree.ts` | Flat paths → directory tree. |
-| `apps/web/src/room/project/sample-paper.ts` | Seed project (`main.tex`, `sections/intro.tex`, `refs.bib`, figure). |
-| `apps/web/src/room/file-tree.tsx` | Sidebar file-tree UI. |
-| `apps/web/src/room/surfaces/latex-surface.tsx` | CodeMirror + `codemirror-lang-latex` + `yCollab`. |
-| `apps/web/src/room/surfaces/pdf-surface.tsx` | pdf.js canvas viewer. |
-| `apps/web/src/room/surfaces/image-surface.tsx` | Figure surface (#9). |
-| `apps/web/src/workers/latex-compile.worker.ts` | WASM TeX engine in a Web Worker. |
-| `apps/web/src/room/compile/runner.ts` | Worker client + project→`additionalFiles`. |
-| `apps/web/src/room/compile/use-compile.ts` | Debounce, status, single-flight. |
-| `apps/web/src/room/compile/log-parser.ts` | TeX log → diagnostics / line links. |
-| `apps/web/src/room/blobs/blob-store.ts` | #8 interface + `yjs-inline` backend. |
-| `apps/web/src/room/blobs/use-blob.ts` | Resolve a `blobHash` to bytes/object URL. |
-| `apps/web/src/room/history/history-store.ts` | #6 content-addressed checkpoint log + restore. |
-| `apps/web/src/room/history/use-history.ts` | React binding for the timeline. |
-| `apps/web/src/room/version-timeline.tsx` | #7 timeline / inspect / rewind UI. |
+| Path                                           | Purpose                                                              |
+| ---------------------------------------------- | -------------------------------------------------------------------- |
+| `apps/web/src/room/project/types.ts`           | `Project`, `ProjectFile`, `FileKind`.                                |
+| `apps/web/src/room/project/project-store.ts`   | `Y.Map<Y.Text>` CRUD, main-file resolution, compile snapshot.        |
+| `apps/web/src/room/project/file-tree.ts`       | Flat paths → directory tree.                                         |
+| `apps/web/src/room/project/sample-paper.ts`    | Seed project (`main.tex`, `sections/intro.tex`, `refs.bib`, figure). |
+| `apps/web/src/room/file-tree.tsx`              | Sidebar file-tree UI.                                                |
+| `apps/web/src/room/surfaces/latex-surface.tsx` | CodeMirror + `codemirror-lang-latex` + `yCollab`.                    |
+| `apps/web/src/room/surfaces/pdf-surface.tsx`   | pdf.js canvas viewer.                                                |
+| `apps/web/src/room/surfaces/image-surface.tsx` | Figure surface (#9).                                                 |
+| `apps/web/src/workers/latex-compile.worker.ts` | WASM TeX engine in a Web Worker.                                     |
+| `apps/web/src/room/compile/runner.ts`          | Worker client + project→`additionalFiles`.                           |
+| `apps/web/src/room/compile/use-compile.ts`     | Debounce, status, single-flight.                                     |
+| `apps/web/src/room/compile/log-parser.ts`      | TeX log → diagnostics / line links.                                  |
+| `apps/web/src/room/blobs/blob-store.ts`        | #8 interface + `yjs-inline` backend.                                 |
+| `apps/web/src/room/blobs/use-blob.ts`          | Resolve a `blobHash` to bytes/object URL.                            |
+| `apps/web/src/room/history/history-store.ts`   | #6 content-addressed checkpoint log + restore.                       |
+| `apps/web/src/room/history/use-history.ts`     | React binding for the timeline.                                      |
+| `apps/web/src/room/version-timeline.tsx`       | #7 timeline / inspect / rewind UI.                                   |
 
 ### Change
 
-| Path | Change |
-| --- | --- |
-| `apps/web/src/room/artifacts.ts` | Replace `DOCUMENT_ARTIFACT` + kind groups with project files. |
-| `apps/web/src/room/surfaces.tsx` | Register `latex`, `pdf`, `image`; drop the Markdown case. |
-| `apps/web/src/room/room-shell.tsx` | Derive `artifacts` from the project store; enable "New file". |
-| `apps/web/src/room/room-sidebar.tsx` | Render the file tree; keep room switcher/status/coordinator. |
-| `apps/web/src/room/room-rail.tsx` | Project details + real history panel (#7). |
-| `apps/web/src/room/command-palette.tsx` | Compile / new file / go-to-file; enable "Create checkpoint". |
-| `apps/web/src/room/room-provider.tsx` | Expose the project store; keep the substrate. |
-| `apps/web/src/room/icons.tsx` | File-type glyphs. |
-| `apps/web/src/routes/room.$roomId.tsx` | Cosmetic `project` naming only. |
-| `apps/web/src/routes/index.tsx`, `components/room-launcher.tsx` | Project create/open/join (with #17). |
-| `apps/web/vite.config.ts` | Engine asset handling; manifest copy. |
-| `apps/web/vite-plugins/pwa-service-worker.ts` | Runtime-cache `wasm`/`.data`; raise size limit; offline-engine warm step. |
-| `apps/web/package.json` | Add `codemirror-lang-latex`, TeX engine, `pdfjs-dist`, `@codemirror/lint`. |
-| `packages/ui/src/styles/globals.css` | Only if file-type/tree tokens are needed. |
+| Path                                                            | Change                                                                     |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `apps/web/src/room/artifacts.ts`                                | Replace `DOCUMENT_ARTIFACT` + kind groups with project files.              |
+| `apps/web/src/room/surfaces.tsx`                                | Register `latex`, `pdf`, `image`; drop the Markdown case.                  |
+| `apps/web/src/room/room-shell.tsx`                              | Derive `artifacts` from the project store; enable "New file".              |
+| `apps/web/src/room/room-sidebar.tsx`                            | Render the file tree; keep room switcher/status/coordinator.               |
+| `apps/web/src/room/room-rail.tsx`                               | Project details + real history panel (#7).                                 |
+| `apps/web/src/room/command-palette.tsx`                         | Compile / new file / go-to-file; enable "Create checkpoint".               |
+| `apps/web/src/room/room-provider.tsx`                           | Expose the project store; keep the substrate.                              |
+| `apps/web/src/room/icons.tsx`                                   | File-type glyphs.                                                          |
+| `apps/web/src/routes/room.$roomId.tsx`                          | Cosmetic `project` naming only.                                            |
+| `apps/web/src/routes/index.tsx`, `components/room-launcher.tsx` | Project create/open/join (with #17).                                       |
+| `apps/web/vite.config.ts`                                       | Engine asset handling; manifest copy.                                      |
+| `apps/web/vite-plugins/pwa-service-worker.ts`                   | Runtime-cache `wasm`/`.data`; raise size limit; offline-engine warm step.  |
+| `apps/web/package.json`                                         | Add `codemirror-lang-latex`, TeX engine, `pdfjs-dist`, `@codemirror/lint`. |
+| `packages/ui/src/styles/globals.css`                            | Only if file-type/tree tokens are needed.                                  |
 
 ### Explicitly unchanged
 
@@ -524,7 +524,7 @@ the AGPL licensing question before adding the engine. Measure doc size on a real
 before deciding whether per-file docs are needed.
 
 This is a pivot of **surfaces and data model**, not of infrastructure. The distributed-room claim
-and its entire implementation survive; what changes is what the room is *about*.
+and its entire implementation survive; what changes is what the room is _about_.
 
 ---
 

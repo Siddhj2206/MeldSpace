@@ -4,6 +4,7 @@ Date: 2026-09-12
 Status: accepted
 
 ## Context
+
 The LaTeX lane needs two mature components: the CodeMirror LaTeX grammar (`codemirror-lang-latex`) and
 the in-browser TeX engine (`texlyre-busytex`). Both are AGPL-3.0-or-later, as is TeXlyre, the reference
 implementation. The MIT alternatives are pre-alpha (`@typeward/texlive-wasm`, `@siglum/engine`) or too
@@ -11,10 +12,12 @@ weak (legacy `stex`, highlight-only). MeldSpace had no license file, and the cho
 before any of these dependencies were added.
 
 ## Decision
+
 MeldSpace is licensed **AGPL-3.0-or-later**. The web client may depend on `codemirror-lang-latex` and
 `texlyre-busytex` directly. `LICENSE` holds the canonical AGPL-3.0 text.
 
 ## Consequences
+
 - Anyone who runs a modified MeldSpace over a network must be offered the source. Acceptable here, and
   the same choice TeXlyre made.
 - We are not restricted to the pre-alpha MIT engines; `@typeward/texlive-wasm`, `@siglum/engine` and a
@@ -24,6 +27,7 @@ MeldSpace is licensed **AGPL-3.0-or-later**. The web client may depend on `codem
   legal advice.
 
 ## Alternatives considered
+
 - **MIT-only client** — rejected: the only maintained browser-TeX engine (`texlyre-busytex`) is AGPL,
   and the MIT alternatives are pre-alpha. Staying permissive costs a weaker editor and an unstable engine.
 - **Compile as a separate AGPL service, keep the client permissive** — deferred: the license boundary is
