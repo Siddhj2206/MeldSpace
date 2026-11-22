@@ -209,12 +209,12 @@ export function RoomSidebar({
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  tooltip="New document (⌘N)"
+                  tooltip="New file (⌘N)"
                   onClick={onCreateArtifact}
                   className="h-8 gap-2 rounded-sm px-2 text-body-sm text-subtle-foreground hover:text-foreground"
                 >
                   <PlusIcon />
-                  <span className="flex-1">New document</span>
+                  <span className="flex-1">New file</span>
                   <span className="font-mono text-[9.5px] text-subtle-foreground">⌘N</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>

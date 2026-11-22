@@ -4,9 +4,8 @@ import { cn } from "@MeldSpace/ui/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Artifact } from "./artifacts";
-import { documentArtifacts } from "./artifacts";
+import { projectFileArtifacts } from "./artifacts";
 import { CommandPalette, type RailPanel } from "./command-palette";
-import { createDocument, useRoomDocuments } from "./documents";
 import {
   BoardIcon,
   CloseIcon,
@@ -16,6 +15,8 @@ import {
   PlusIcon,
   ShareIcon,
 } from "./icons";
+import { createProjectFile } from "./project/project";
+import { useProjectFiles } from "./project/use-project";
 import { useRoom } from "./room-provider";
 import { RoomRail } from "./room-rail";
 import { RoomSidebar, RoomSidebarTrigger } from "./room-sidebar";
@@ -57,8 +58,8 @@ function PresenceStack() {
 function RoomShellInner() {
   const { toggleSidebar } = useSidebar();
   const { runtime, checkpoints, createCheckpoint } = useRoom();
-  const documents = useRoomDocuments();
-  const artifacts = useMemo(() => documentArtifacts(documents), [documents]);
+  const files = useProjectFiles();
+  const artifacts = useMemo(() => projectFileArtifacts(files), [files]);
 
   const [openIds, setOpenIds] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -106,11 +107,19 @@ function RoomShellInner() {
 
   const createArtifact = useCallback(() => {
     if (!runtime) return;
-    const document = createDocument(runtime.doc, `Untitled ${documents.length + 1}.md`);
-    setOpenIds((ids) => [...ids, document.id]);
-    setActiveId(document.id);
+    // The room is one LaTeX project: a new artifact is a new .tex file.
+    let path = `untitled-${files.length + 1}.tex`;
+    let attempt = files.length + 1;
+    while (files.some((file) => file.path === path)) {
+      attempt += 1;
+      path = `untitled-${attempt}.tex`;
+    }
+    createProjectFile(runtime.doc, path);
+    const id = `file:${path}`;
+    setOpenIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
+    setActiveId(id);
     setRailPanel(null);
-  }, [runtime, documents.length]);
+  }, [runtime, files]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -204,7 +213,7 @@ function RoomShellInner() {
 
             <button
               type="button"
-              title="New document (⌘N)"
+              title="New file (⌘N)"
               onClick={createArtifact}
               className="flex size-7 shrink-0 items-center justify-center rounded-sm text-subtle-foreground hover:bg-surface-2 hover:text-foreground"
             >
@@ -244,7 +253,7 @@ function RoomShellInner() {
                   No artifact open
                 </span>
                 <p className="max-w-xs text-body-sm text-muted-foreground">
-                  Pick an artifact from the sidebar, or press ⌘N for a new document.
+                  Pick a file from the sidebar, or press ⌘N for a new one.
                 </p>
               </div>
             )}

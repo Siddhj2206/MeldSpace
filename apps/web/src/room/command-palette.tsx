@@ -115,9 +115,9 @@ export function CommandPalette({
         <CommandSeparator />
 
         <CommandGroup heading="Actions">
-          <CommandItem value="new document" onSelect={() => run(onNewDocument)}>
+          <CommandItem value="new file" onSelect={() => run(onNewDocument)}>
             <PlusIcon />
-            New document
+            New file
             <CommandShortcut>
               <Key>⌘N</Key>
             </CommandShortcut>

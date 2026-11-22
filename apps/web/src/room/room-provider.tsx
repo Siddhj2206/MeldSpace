@@ -19,7 +19,8 @@ import { HistoryStore, type CheckpointMeta } from "@/lib/history-store";
 import { useTRPC } from "@/utils/trpc";
 
 import { identityColor, initials } from "./identity";
-import { ensureProject } from "./project/migrate";
+import { ensureProject, seedSampleProject } from "./project/migrate";
+import { listProjectFiles } from "./project/project";
 import { readRoomContent } from "./room-content";
 import { deriveRoomStatus, type RoomStatus } from "./room-status";
 
@@ -145,10 +146,18 @@ const RoomContext = createContext<RoomContextValue | null>(null);
 export function RoomProvider({
   roomId,
   displayName,
+  seedProject,
   children,
 }: {
   roomId: string;
   displayName?: string;
+  /**
+   * Set by the create-room flow: once local persistence has loaded and the
+   * project is still empty, seed the sample paper. Peers that join through a
+   * plain share link never carry this flag, so they can't resurrect the seed
+   * over a converged room.
+   */
+  seedProject?: boolean;
   children: ReactNode;
 }) {
   const trpc = useTRPC();
@@ -222,6 +231,9 @@ export function RoomProvider({
       // Migrate once IndexedDB has loaded, so a legacy room's `content` is
       // present before we decide whether to move it into `main.tex`.
       ensureProject(doc);
+      // A freshly created room seeds its sample paper exactly once, here on
+      // the creator's device only.
+      if (seedProject && listProjectFiles(doc).length === 0) seedSampleProject(doc);
     };
     const onSynced = (event: { synced: boolean }) => {
       setSynced(event.synced);
@@ -250,7 +262,7 @@ export function RoomProvider({
       provider.off("peers", onPeers);
       doc.off("update", onUpdate);
     };
-  }, [runtime]);
+  }, [runtime, seedProject]);
 
   useEffect(() => {
     if (!runtime) return;

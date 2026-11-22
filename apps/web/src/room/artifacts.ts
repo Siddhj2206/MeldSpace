@@ -1,6 +1,6 @@
 import type * as Y from "yjs";
 
-import type { RoomDocument } from "./documents";
+import type { FileKind, ProjectFile } from "./project/types";
 
 /**
  * Artifact model for the room shell.
@@ -29,25 +29,40 @@ export type Artifact = {
   sourceKey: string;
   /** The shared text for document artifacts. */
   text?: Y.Text;
+  /** Project-relative path for file artifacts (#25). */
+  path?: string;
+  fileKind?: FileKind;
 };
 
 export const ARTIFACT_GROUPS: readonly { kind: ArtifactKind; label: string }[] = [
-  { kind: "document", label: "DOCUMENTS" },
   { kind: "file", label: "FILES" },
   { kind: "board", label: "BOARDS" },
   { kind: "comment", label: "COMMENTS" },
 ] as const;
 
-/** Project the room's documents into shell artifacts. */
-export function documentArtifacts(documents: readonly RoomDocument[]): Artifact[] {
-  return documents.map((document) => ({
-    id: document.id,
-    kind: "document",
+const KIND_SUBTITLE: Record<FileKind, string> = {
+  tex: "LaTeX",
+  bib: "BibTeX",
+  asset: "Figure",
+  text: "Text",
+};
+
+/**
+ * Project the room's files into shell artifacts (#25). The file list *is* the
+ * artifact list now — the paper pivot replaced loose documents with one
+ * LaTeX project.
+ */
+export function projectFileArtifacts(files: readonly ProjectFile[]): Artifact[] {
+  return files.map((file) => ({
+    id: `file:${file.path}`,
+    kind: "file",
     surface: "document",
-    title: document.title,
-    subtitle: "Markdown",
-    sourceKey: document.id,
-    text: document.text,
+    title: file.path,
+    subtitle: KIND_SUBTITLE[file.kind],
+    sourceKey: file.path,
+    path: file.path,
+    fileKind: file.kind,
+    text: file.text,
   }));
 }
 

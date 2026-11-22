@@ -26,8 +26,12 @@ export default function RoomLauncher() {
 
   const create = useMutation(trpc.room.create.mutationOptions());
 
-  const openRoom = (id: string) => {
-    void navigate({ to: "/room/$roomId", params: { roomId: id } });
+  const openRoom = (id: string, fresh = false) => {
+    void navigate({
+      to: "/room/$roomId",
+      params: { roomId: id },
+      search: fresh ? { fresh: true } : {},
+    });
   };
 
   const onCreate = async () => {
@@ -35,9 +39,9 @@ export default function RoomLauncher() {
       // Registered rooms get a join code and control-plane metadata. Signed
       // out or offline, fall back to a local peer-to-peer room.
       const room = await create.mutateAsync({ name: name.trim() || "Untitled room" });
-      openRoom(room.id);
+      openRoom(room.id, true);
     } catch {
-      openRoom(randomRoomId());
+      openRoom(randomRoomId(), true);
     }
   };
 
