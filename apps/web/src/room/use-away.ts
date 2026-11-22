@@ -25,7 +25,9 @@ export function useAwayIds(roomId: string, checkpoints: CheckpointMeta[]): strin
 
   // Persist the latest head whenever the room closes or unmounts.
   const latestRef = useRef(checkpoints);
-  latestRef.current = checkpoints;
+  useEffect(() => {
+    latestRef.current = checkpoints;
+  }, [checkpoints]);
   useEffect(() => {
     const persist = () => {
       const head = latestRef.current[latestRef.current.length - 1];

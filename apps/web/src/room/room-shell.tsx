@@ -16,7 +16,7 @@ import {
   PlusIcon,
   ShareIcon,
 } from "./icons";
-import { createProjectFile, setProjectAsset } from "./project/project";
+import { createProjectFile, setProjectAsset, uniqueProjectPath } from "./project/project";
 import { useProjectAssets, useProjectFiles } from "./project/use-project";
 import { useRoom } from "./room-provider";
 import { LatexCompileProvider, useLatexCompileContext } from "./latex/latex-compile-context";
@@ -158,15 +158,7 @@ function RoomShellBody() {
         const bytes = new Uint8Array(await file.arrayBuffer());
         const hash = await runtime.blobStore.put(bytes, file.type || "image/png");
         const safe = file.name.replace(/[^\w.-]+/g, "-") || "figure.png";
-        let path = `figures/${safe}`;
-        let attempt = 2;
-        while (
-          files.some((entry) => entry.path === path) ||
-          assets.some((entry) => entry.path === path)
-        ) {
-          path = `figures/${attempt}-${safe}`;
-          attempt += 1;
-        }
+        const path = uniqueProjectPath(runtime.doc, `figures/${safe}`);
         setProjectAsset(runtime.doc, path, {
           hash,
           mime: file.type || "image/png",
@@ -180,18 +172,13 @@ function RoomShellBody() {
         toast.error("Couldn't add that figure");
       }
     },
-    [runtime, files, assets],
+    [runtime],
   );
 
   const createArtifact = useCallback(() => {
     if (!runtime) return;
     // The room is one LaTeX project: a new artifact is a new .tex file.
-    let path = `untitled-${files.length + 1}.tex`;
-    let attempt = files.length + 1;
-    while (files.some((file) => file.path === path)) {
-      attempt += 1;
-      path = `untitled-${attempt}.tex`;
-    }
+    const path = uniqueProjectPath(runtime.doc, `untitled-${files.length + 1}.tex`);
     createProjectFile(runtime.doc, path);
     const id = `file:${path}`;
     setOpenIds((ids) => (ids.includes(id) ? ids : [...ids, id]));

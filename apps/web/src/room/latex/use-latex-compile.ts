@@ -83,9 +83,8 @@ export function useLatexCompile(
   // Blob URL lifecycle: revoke the previous PDF before replacing it, and on
   // unmount, so recompiles don't leak object URLs.
   useEffect(() => {
-    const current = urlRef.current;
     return () => {
-      if (current) URL.revokeObjectURL(current);
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     };
   }, []);
 

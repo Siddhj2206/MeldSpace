@@ -330,9 +330,15 @@ export function RoomProvider({
         history.createCheckpoint({ deviceId, displayName: name });
       }, QUIET_CHECKPOINT_MS);
     };
-    runtime.doc.on("update", arm);
+    // Only local edits arm the timer (`tr.local` is false for provider/IDB
+    // merges) — a checkpoint's author should be the device that changed the
+    // room, not one that merely received an update.
+    const onUpdate = (_update: Uint8Array, _origin: unknown, _doc: Y.Doc, tr: Y.Transaction) => {
+      if (tr.local) arm();
+    };
+    runtime.doc.on("update", onUpdate);
     return () => {
-      runtime.doc.off("update", arm);
+      runtime.doc.off("update", onUpdate);
       if (timer) clearTimeout(timer);
     };
   }, [runtime, history, deviceId, name]);

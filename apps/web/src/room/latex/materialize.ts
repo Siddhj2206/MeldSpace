@@ -1,5 +1,6 @@
 import * as Y from "yjs";
 
+import { listProjectFiles } from "../project/project";
 import { DOCUMENTS_KEY, TITLES_KEY } from "../room-content";
 import type { LatexFileInput } from "./types";
 
@@ -26,9 +27,6 @@ export type MaterializedProject = {
 
 /** Basename that wins the main-file election. */
 export const MAIN_TEX_BASENAME = "main.tex";
-
-/** Forward-compatible with the #24 `Y.Map("texts")` project model. */
-export const PROJECT_TEXTS_KEY = "texts";
 
 const COMPILABLE_EXTENSIONS = new Set([
   "tex",
@@ -62,20 +60,15 @@ function cleanPath(raw: string): string {
   return parts.join("/");
 }
 
-function collectTextFiles(map: Y.Map<Y.Text>, into: Map<string, string>): void {
-  map.forEach((text, key) => {
-    if (!(text instanceof Y.Text)) return;
-    const path = cleanPath(key);
-    if (path === "" || into.has(path)) return;
-    if (!COMPILABLE_EXTENSIONS.has(extensionOf(path))) return;
-    into.set(path, text.toString());
-  });
-}
-
 export function materializeLatexProject(doc: Y.Doc): MaterializedProject | null {
   const byPath = new Map<string, string>();
   // #24 shape first so it wins on collision after migration.
-  collectTextFiles(doc.getMap<Y.Text>(PROJECT_TEXTS_KEY), byPath);
+  for (const file of listProjectFiles(doc)) {
+    const path = cleanPath(file.path);
+    if (path === "" || byPath.has(path)) continue;
+    if (!COMPILABLE_EXTENSIONS.has(extensionOf(path))) continue;
+    byPath.set(path, file.text.toString());
+  }
 
   // Current shape: titles double as paths.
   const documents = doc.getMap<Y.Text>(DOCUMENTS_KEY);

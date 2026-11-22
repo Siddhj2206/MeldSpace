@@ -126,7 +126,7 @@ export function LatexPreviewPanel() {
             {compile.compiledAt !== null
               ? ` · ${new Date(compile.compiledAt).toLocaleTimeString()}`
               : ""}
-            {" · LOCAL, NOT SYNCED"}
+            {" · LOCAL VIEW"}
           </div>
         </div>
       ) : compile.phase === "idle" && hasSources ? (
