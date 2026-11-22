@@ -37,6 +37,25 @@ function signalingUrl(): string {
   return `${scheme}://${window.location.hostname}:4444`;
 }
 
+/**
+ * ICE servers for cross-network peers (#19). Direct P2P stays the default
+ * path — ICE prefers a direct pair and only falls back to the relay. A TURN
+ * relay forwards encrypted DTLS and is content-blind, so it never becomes a
+ * source of truth. Unset env means exactly the old LAN behaviour.
+ */
+function iceServers(): RTCIceServer[] {
+  const servers: RTCIceServer[] = [];
+  if (ENV.VITE_STUN_URL) servers.push({ urls: ENV.VITE_STUN_URL });
+  if (ENV.VITE_TURN_URL) {
+    servers.push({
+      urls: ENV.VITE_TURN_URL,
+      username: ENV.VITE_TURN_USERNAME,
+      credential: ENV.VITE_TURN_CREDENTIAL,
+    });
+  }
+  return servers;
+}
+
 export type RoomRuntime = {
   doc: Y.Doc;
   awareness: Awareness;
@@ -154,12 +173,15 @@ export function RoomProvider({
   useEffect(() => {
     const doc = new Y.Doc();
     const persistence = new IndexeddbPersistence(`meldspace-${roomId}`, doc);
+    const ice = iceServers();
     const provider = new WebrtcProvider(roomId, doc, {
       signaling: [signalingUrl()],
       maxConns: 20,
       // Same-browser tabs sync over BroadcastChannel; this is the R1 fallback
       // when WebRTC signaling isn't reachable. y-webrtc defaults to true.
       filterBcConns: true,
+      // y-webrtc spreads peerOpts into simple-peer's constructor.
+      peerOpts: ice.length > 0 ? { config: { iceServers: ice } } : {},
     });
     // The blob channel (#8): same transports, separate room + store, so image
     // bytes replicate peer-to-peer without touching checkpoints or metadata.
@@ -169,6 +191,7 @@ export function RoomProvider({
       signaling: [signalingUrl()],
       maxConns: 20,
       filterBcConns: true,
+      peerOpts: ice.length > 0 ? { config: { iceServers: ice } } : {},
     });
     setRuntime({
       doc,
