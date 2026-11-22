@@ -19,6 +19,7 @@ import { HistoryStore, type CheckpointMeta } from "@/lib/history-store";
 import { readDeviceId, readGuestName } from "@/lib/peer-identity";
 import { useTRPC } from "@/utils/trpc";
 
+import { useCoordinatorElection } from "./coordinator";
 import { identityColor, initials } from "./identity";
 import { useAwayIds } from "./use-away";
 import { ensureProject, seedSampleProject } from "./project/migrate";
@@ -284,6 +285,10 @@ export function RoomProvider({
       if (timer) clearTimeout(timer);
     };
   }, [runtime, history, deviceId, name]);
+
+  // The coordinator election (#10) runs inside the provider so the role is
+  // held — or vacated — independently of which surface is open.
+  useCoordinatorElection(runtime);
 
   const createCheckpoint = useCallback(() => {
     history?.createCheckpoint({ deviceId, displayName: name });
