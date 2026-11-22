@@ -4,7 +4,7 @@ Peers on different networks need an ICE fallback: a STUN lookup usually
 suffices, but symmetric NATs and corporate firewalls need a TURN relay. The
 relay forwards **encrypted DTLS packets only** — it sees connection metadata
 (who talks to whom, when, how much), never room content. It does not create a
-replica, so the invariant holds: the shared object never *requires* a central
+replica, so the invariant holds: the shared object never _requires_ a central
 replica; the relay is used only when a direct pair fails, and ICE always
 prefers direct.
 
