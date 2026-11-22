@@ -1,6 +1,6 @@
 import type * as Y from "yjs";
 
-import type { FileKind, ProjectFile } from "./project/types";
+import type { AssetRef, FileKind, ProjectFile } from "./project/types";
 
 /**
  * Artifact model for the room shell.
@@ -32,6 +32,8 @@ export type Artifact = {
   /** Project-relative path for file artifacts (#25). */
   path?: string;
   fileKind?: FileKind;
+  /** Content hash for figure artifacts (#8/#9). */
+  assetRef?: AssetRef;
 };
 
 export const ARTIFACT_GROUPS: readonly { kind: ArtifactKind; label: string }[] = [
@@ -63,6 +65,26 @@ export function projectFileArtifacts(files: readonly ProjectFile[]): Artifact[] 
     path: file.path,
     fileKind: file.kind,
     text: file.text,
+  }));
+}
+
+/**
+ * Figure assets as shell artifacts (#9). Metadata only — the surface resolves
+ * bytes through the blob store by `ref.hash`.
+ */
+export function projectAssetArtifacts(
+  assets: readonly { path: string; ref: AssetRef }[],
+): Artifact[] {
+  return assets.map(({ path, ref }) => ({
+    id: `asset:${path}`,
+    kind: "file",
+    surface: "images",
+    title: path,
+    subtitle: "Figure",
+    sourceKey: path,
+    path,
+    fileKind: "asset",
+    assetRef: ref,
   }));
 }
 

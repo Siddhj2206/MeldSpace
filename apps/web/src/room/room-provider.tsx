@@ -19,6 +19,7 @@ import { HistoryStore, type CheckpointMeta } from "@/lib/history-store";
 import { readDeviceId, readGuestName } from "@/lib/peer-identity";
 import { useTRPC } from "@/utils/trpc";
 
+import { BlobStore } from "./blobs";
 import { useCoordinatorElection } from "./coordinator";
 import { identityColor, initials } from "./identity";
 import { useAwayIds } from "./use-away";
@@ -41,6 +42,13 @@ export type RoomRuntime = {
   awareness: Awareness;
   provider: WebrtcProvider;
   persistence: IndexeddbPersistence;
+  /**
+   * Content-addressed blob transport (#8) on its own doc + provider — separate
+   * from room metadata and out of checkpoint snapshots.
+   */
+  blobStore: BlobStore;
+  blobProvider: WebrtcProvider;
+  blobPersistence: IndexeddbPersistence;
 };
 
 export type RoomPeer = {
@@ -153,12 +161,32 @@ export function RoomProvider({
       // when WebRTC signaling isn't reachable. y-webrtc defaults to true.
       filterBcConns: true,
     });
-    setRuntime({ doc, awareness: provider.awareness, provider, persistence });
+    // The blob channel (#8): same transports, separate room + store, so image
+    // bytes replicate peer-to-peer without touching checkpoints or metadata.
+    const blobDoc = new Y.Doc();
+    const blobPersistence = new IndexeddbPersistence(`meldspace-blobs-${roomId}`, blobDoc);
+    const blobProvider = new WebrtcProvider(`${roomId}-blobs`, blobDoc, {
+      signaling: [signalingUrl()],
+      maxConns: 20,
+      filterBcConns: true,
+    });
+    setRuntime({
+      doc,
+      awareness: provider.awareness,
+      provider,
+      persistence,
+      blobStore: new BlobStore(blobDoc),
+      blobProvider,
+      blobPersistence,
+    });
 
     return () => {
       provider.destroy();
       persistence.destroy();
       doc.destroy();
+      blobProvider.destroy();
+      blobPersistence.destroy();
+      blobDoc.destroy();
       setRuntime(null);
     };
   }, [roomId]);

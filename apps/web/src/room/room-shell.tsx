@@ -1,10 +1,11 @@
 import { Button } from "@MeldSpace/ui/components/button";
 import { SidebarProvider, useSidebar } from "@MeldSpace/ui/components/sidebar";
 import { cn } from "@MeldSpace/ui/lib/utils";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import type { Artifact } from "./artifacts";
-import { projectFileArtifacts } from "./artifacts";
+import { projectAssetArtifacts, projectFileArtifacts } from "./artifacts";
 import { CommandPalette, type RailPanel } from "./command-palette";
 import {
   BoardIcon,
@@ -15,8 +16,8 @@ import {
   PlusIcon,
   ShareIcon,
 } from "./icons";
-import { createProjectFile } from "./project/project";
-import { useProjectFiles } from "./project/use-project";
+import { createProjectFile, setProjectAsset } from "./project/project";
+import { useProjectAssets, useProjectFiles } from "./project/use-project";
 import { useRoom } from "./room-provider";
 import { RoomRail } from "./room-rail";
 import { RoomSidebar, RoomSidebarTrigger } from "./room-sidebar";
@@ -59,7 +60,11 @@ function RoomShellInner() {
   const { toggleSidebar } = useSidebar();
   const { runtime, checkpoints, createCheckpoint } = useRoom();
   const files = useProjectFiles();
-  const artifacts = useMemo(() => projectFileArtifacts(files), [files]);
+  const assets = useProjectAssets();
+  const artifacts = useMemo(
+    () => [...projectFileArtifacts(files), ...projectAssetArtifacts(assets)],
+    [files, assets],
+  );
 
   const [openIds, setOpenIds] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -104,6 +109,41 @@ function RoomShellInner() {
       return next;
     });
   };
+
+  // Figure upload (#9): bytes go to the blob store by content hash, only the
+  // {hash, mime, size} ref enters the room doc's assets map.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadFigure = useCallback(
+    async (file: File) => {
+      if (!runtime) return;
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const hash = await runtime.blobStore.put(bytes, file.type || "image/png");
+        const safe = file.name.replace(/[^\w.-]+/g, "-") || "figure.png";
+        let path = `figures/${safe}`;
+        let attempt = 2;
+        while (
+          files.some((entry) => entry.path === path) ||
+          assets.some((entry) => entry.path === path)
+        ) {
+          path = `figures/${attempt}-${safe}`;
+          attempt += 1;
+        }
+        setProjectAsset(runtime.doc, path, {
+          hash,
+          mime: file.type || "image/png",
+          size: bytes.byteLength,
+        });
+        const id = `asset:${path}`;
+        setOpenIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
+        setActiveId(id);
+        setRailPanel(null);
+      } catch {
+        toast.error("Couldn't add that figure");
+      }
+    },
+    [runtime, files, assets],
+  );
 
   const createArtifact = useCallback(() => {
     if (!runtime) return;
@@ -168,6 +208,7 @@ function RoomShellInner() {
         activeId={activeArtifact?.id ?? null}
         onOpenArtifact={openArtifact}
         onCreateArtifact={createArtifact}
+        onAddFigure={() => fileInputRef.current?.click()}
         onOpenPalette={() => setPaletteOpen(true)}
         onOpenShare={() => setShareOpen(true)}
       />
@@ -270,6 +311,17 @@ function RoomShellInner() {
         </div>
       </div>
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (file) void uploadFigure(file);
+        }}
+      />
       <ShareDialog open={shareOpen} onOpenChange={setShareOpen} />
       <CommandPalette
         open={paletteOpen}

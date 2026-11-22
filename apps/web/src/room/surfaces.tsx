@@ -1,4 +1,5 @@
 import type { Artifact, SurfaceId } from "./artifacts";
+import { ImageSurface } from "./image-surface";
 import { LatexSurface } from "./latex-surface";
 
 /**
@@ -10,6 +11,8 @@ export function Surface({ artifact }: { artifact: Artifact }) {
   switch (artifact.surface) {
     case "document":
       return <LatexSurface artifact={artifact} />;
+    case "images":
+      return <ImageSurface artifact={artifact} />;
     default:
       return <SurfacePlaceholder surface={artifact.surface} title={artifact.title} />;
   }
