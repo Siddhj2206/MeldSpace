@@ -13,16 +13,16 @@ Artboards: `Room shell — editor`, `Room shell — board`, `Room — remaining 
 
 Derived from that scene:
 
-| Role | Value |
-|---|---|
-| App ground | `#0B0C0D` instrument black |
-| Surface 1 / 2 | `#121316` / `#191B1E` |
-| Text (bone) | `#ECEDEA` |
-| Secondary / tertiary text | `#8B9096` / `#5C6167` |
-| Hairline / strong hairline | `rgba(255,255,255,0.09)` / `rgba(255,255,255,0.16)` |
-| Primary button | bone `#ECEDEA` on `#0B0C0D` |
-| **Signal (reserved)** | `#E0A23C` amber — focus ring, active nav/tool, live or reconnecting state only |
-| Success / danger | `#5FBF8A` / `#E0564B` |
+| Role                          | Value                                                                                                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| App ground                    | `#0B0C0D` instrument black                                                                                                         |
+| Surface 1 / 2                 | `#121316` / `#191B1E`                                                                                                              |
+| Text (bone)                   | `#ECEDEA`                                                                                                                          |
+| Secondary / tertiary text     | `#8B9096` / `#5C6167`                                                                                                              |
+| Hairline / strong hairline    | `rgba(255,255,255,0.09)` / `rgba(255,255,255,0.16)`                                                                                |
+| Primary button                | bone `#ECEDEA` on `#0B0C0D`                                                                                                        |
+| **Signal (reserved)**         | `#E0A23C` amber — focus ring, active nav/tool, live or reconnecting state only                                                     |
+| Success / danger              | `#5FBF8A` / `#E0564B`                                                                                                              |
 | Identity roster (people only) | coral `#E0645C`, ochre `#D98A3A`, moss `#7FB46B`, teal `#4FB3A5`, blue `#5C8FE0`, violet `#9B7BE0`, pink `#D472B0`, gold `#C9A23C` |
 
 Rule: the amber signal and the identity roster never cross. People get color; chrome does not.
@@ -34,7 +34,7 @@ Sizes: 11 eyebrow · 12 micro · 13 body-sm · **15 body** · 17/20/24 titles. W
 
 ## Direction
 
-*Quiet instrument.* Near-black cabin, hairline-separated flat surfaces, one amber lamp of state. The distributed machinery — peers, epochs, queued changes — lives behind a single status glyph until you ask for it. All color belongs to people, not chrome.
+_Quiet instrument._ Near-black cabin, hairline-separated flat surfaces, one amber lamp of state. The distributed machinery — peers, epochs, queued changes — lives behind a single status glyph until you ask for it. All color belongs to people, not chrome.
 
 ## Shell IA
 

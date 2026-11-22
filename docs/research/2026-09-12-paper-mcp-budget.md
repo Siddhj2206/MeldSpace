@@ -71,16 +71,15 @@ the same code sits in `main-D-tkVXh4.js`).
 Every tool call goes through `gatedMCPToolCall(tool, meta)`:
 
 ```js
-if (this.root.meterState.mcpRemaining > 0)
-  return this.root.meterState.recordMcp(), tool();
+if (this.root.meterState.mcpRemaining > 0) return (this.root.meterState.recordMcp(), tool());
 // else throw:
-"Weekly MCP limit reached. It resets ${resetDate}. Upgrade to Paper Pro to continue…"
+("Weekly MCP limit reached. It resets ${resetDate}. Upgrade to Paper Pro to continue…");
 ```
 
 Balance is fetched from the Paper cloud:
 
 - `GET  https://workers.paper.design/meter/balance` → `{ mcpCap, mcpUsed, manaCap, manaUsed,
-  serverClock, meterScope }`
+serverClock, meterScope }`
 - `POST https://workers.paper.design/meter/record-mcp` on every gated call (optimistic local
   decrement first, then server-confirmed `{cap, used, serverClock}`).
 
@@ -88,7 +87,7 @@ Balance is fetched from the Paper cloud:
 nodes the call touches. Batching many nodes into `update_styles`/`set_text_content`/
 `write_html` still costs **1**.
 
-**What is free**: tools whose handler is *not* wrapped in `gatedMCPToolCall`. There are exactly
+**What is free**: tools whose handler is _not_ wrapped in `gatedMCPToolCall`. There are exactly
 three:
 `get_basic_info`, `get_guide`, `finish_working_on_nodes`.
 
@@ -100,15 +99,17 @@ speculative calls.
 current week start as the most recent **Saturday 00:00 UTC**:
 
 ```js
-const r = new Date, s = (r.getUTCDay() + 1) % 7;
+const r = new Date(),
+  s = (r.getUTCDay() + 1) % 7;
 const weekStart = Date.UTC(r.getUTCFullYear(), r.getUTCMonth(), r.getUTCDate() - s);
 ```
 
 and refetches balance when the server clock predates that. Treat "resets weekly around Saturday
-00:00 UTC" as *derived, high-confidence but not officially documented*. The Paper docs only
+00:00 UTC" as _derived, high-confidence but not officially documented_. The Paper docs only
 acknowledge that an upgrade refresh bug existed ("After upgrading MCP limits aren't reset").
 
 **Plan caps** (official, from the pricing page):
+
 - Free: **100/week MCP tool calls**
 - Pro: **1M/week MCP tool calls**
 
@@ -122,42 +123,42 @@ per scope ("Weekly Viewer MCP limit reached" vs "Weekly MCP limit reached").
 All gated tools = **1 request**. Free tools = **0**. Note: the same public docs page lists only a
 subset; the client actually exposes 34 tools.
 
-| # | Tool | Cost | Notes |
-|---|------|------|-------|
-| 1 | `get_basic_info` | **0 (free)** | Use this first, freely. File/page/artboards/tokens. |
-| 2 | `get_guide` | **0 (free)** | Topics found: `paper-mcp-instructions`, `figma-import`, `image-generation`, `mobile-status-bar`. Read these for free. |
-| 3 | `finish_working_on_nodes` | **0 (free)** | Required cleanup. Free. |
-| 4 | `get_selection` | 1 | |
-| 5 | `get_node_info` | 1 | Per-node; expensive in *count*, not payload. |
-| 6 | `get_children` | 1 | Per-node. |
-| 7 | `get_tree_summary` | 1 | Cheapest orientation read (1 for whole subtree). |
-| 8 | `get_screenshot` | 1 | Large base64 payload; auto-capped. |
-| 9 | `get_jsx` | 1 | Large payload (Tailwind or inline). |
-| 10 | `get_computed_styles` | 1 | **Batch**: many nodes, one call. |
-| 11 | `get_fill_image` | 1 | Large base64 JPEG. |
-| 12 | `find_nodes` | 1 | Style/text search; scopes whole page. |
-| 13 | `get_font_family_info` | 1 | |
-| 14 | `open_file` | 1 | App scope; sets sticky session. |
-| 15 | `list_files` | 1 | App scope, up to 200. |
-| 16 | `create_file` | 1 | Creates a new file. |
-| 17 | `create_page` | 1 | New page; does not switch to it. |
-| 18 | `write_html` | 1 | **Arbitrary HTML tree**; see §5. |
-| 19 | `create_artboard` | 1 | One artboard per call. |
-| 20 | `update_styles` | 1 | **Batch**; tokens supported. |
-| 21 | `set_text_content` | 1 | **Batch**; Text nodes only. |
-| 22 | `rename_nodes` | 1 | **Batch.** |
-| 23 | `duplicate_nodes` | 1 | Deep clone; returns `descendantIdMap`. |
-| 24 | `move_nodes` | 1 | **Batch** moves. |
-| 25 | `delete_nodes` | 1 | **Batch** (cascades). |
-| 26 | `export` | 1 | Writes PNG/JPG/SVG/PDF/MP4/WebM locally. |
-| 27 | `export_combined_pdf` | 1 | Multi-node → one PDF. |
-| 28 | `get_tokens` | 1 | |
-| 29 | `create_tokens` | 1 | **Batch.** |
-| 30 | `set_tokens` | 1 | **Batch.** |
-| 31 | `list_comment_threads` | 1 | |
-| 32 | `get_comment_thread` | 1 | |
-| 33 | `list_comment_thread_authors` | 1 | |
-| 34 | `set_comment_thread_status` | 1 | |
+| #   | Tool                          | Cost         | Notes                                                                                                                 |
+| --- | ----------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| 1   | `get_basic_info`              | **0 (free)** | Use this first, freely. File/page/artboards/tokens.                                                                   |
+| 2   | `get_guide`                   | **0 (free)** | Topics found: `paper-mcp-instructions`, `figma-import`, `image-generation`, `mobile-status-bar`. Read these for free. |
+| 3   | `finish_working_on_nodes`     | **0 (free)** | Required cleanup. Free.                                                                                               |
+| 4   | `get_selection`               | 1            |                                                                                                                       |
+| 5   | `get_node_info`               | 1            | Per-node; expensive in _count_, not payload.                                                                          |
+| 6   | `get_children`                | 1            | Per-node.                                                                                                             |
+| 7   | `get_tree_summary`            | 1            | Cheapest orientation read (1 for whole subtree).                                                                      |
+| 8   | `get_screenshot`              | 1            | Large base64 payload; auto-capped.                                                                                    |
+| 9   | `get_jsx`                     | 1            | Large payload (Tailwind or inline).                                                                                   |
+| 10  | `get_computed_styles`         | 1            | **Batch**: many nodes, one call.                                                                                      |
+| 11  | `get_fill_image`              | 1            | Large base64 JPEG.                                                                                                    |
+| 12  | `find_nodes`                  | 1            | Style/text search; scopes whole page.                                                                                 |
+| 13  | `get_font_family_info`        | 1            |                                                                                                                       |
+| 14  | `open_file`                   | 1            | App scope; sets sticky session.                                                                                       |
+| 15  | `list_files`                  | 1            | App scope, up to 200.                                                                                                 |
+| 16  | `create_file`                 | 1            | Creates a new file.                                                                                                   |
+| 17  | `create_page`                 | 1            | New page; does not switch to it.                                                                                      |
+| 18  | `write_html`                  | 1            | **Arbitrary HTML tree**; see §5.                                                                                      |
+| 19  | `create_artboard`             | 1            | One artboard per call.                                                                                                |
+| 20  | `update_styles`               | 1            | **Batch**; tokens supported.                                                                                          |
+| 21  | `set_text_content`            | 1            | **Batch**; Text nodes only.                                                                                           |
+| 22  | `rename_nodes`                | 1            | **Batch.**                                                                                                            |
+| 23  | `duplicate_nodes`             | 1            | Deep clone; returns `descendantIdMap`.                                                                                |
+| 24  | `move_nodes`                  | 1            | **Batch** moves.                                                                                                      |
+| 25  | `delete_nodes`                | 1            | **Batch** (cascades).                                                                                                 |
+| 26  | `export`                      | 1            | Writes PNG/JPG/SVG/PDF/MP4/WebM locally.                                                                              |
+| 27  | `export_combined_pdf`         | 1            | Multi-node → one PDF.                                                                                                 |
+| 28  | `get_tokens`                  | 1            |                                                                                                                       |
+| 29  | `create_tokens`               | 1            | **Batch.**                                                                                                            |
+| 30  | `set_tokens`                  | 1            | **Batch.**                                                                                                            |
+| 31  | `list_comment_threads`        | 1            |                                                                                                                       |
+| 32  | `get_comment_thread`          | 1            |                                                                                                                       |
+| 33  | `list_comment_thread_authors` | 1            |                                                                                                                       |
+| 34  | `set_comment_thread_status`   | 1            |                                                                                                                       |
 
 Docs reference: <https://paper.design/docs/mcp>
 
@@ -178,8 +179,8 @@ Docs reference: <https://paper.design/docs/mcp>
   `insert-children` and include N top-level frame elements in the HTML. Each becomes a frame
   (artboard) in one `write_html` call.
 - **No hard per-call node cap was found** in the parser. The only stated limit is human-facing:
-  the tool description says *"Write incrementally… Each write_html call should create one visual
-  item…"*. That is a UX recommendation (show progress on canvas), not an enforced cap. Batching
+  the tool description says _"Write incrementally… Each write_html call should create one visual
+  item…"_. That is a UX recommendation (show progress on canvas), not an enforced cap. Batching
   is allowed.
 - **`x-paper-clone node-id="…"`** inside the HTML clones existing Paper nodes, so repeated
   components don't need to be re-expressed.
@@ -219,15 +220,15 @@ refinements, ~3–5 screenshots, ~1 `get_tree_summary`, plus free calls). Well i
 
 ## 6. Bypass options and their honest risk profile
 
-| Option | Works? | Risk / ToS |
-|---|---|---|
-| **Pro upgrade** | Yes | None. Official. **Recommended.** |
-| **Wait for weekly reset** | Yes | None. |
-| **Free tools only for reads** | Yes | None — it's just the metering behaviour. |
-| **Paste HTML into the canvas manually** (clipboard import / Figma paste) | Yes | Legitimate product use; no MCP calls. Costs human time and is not agent-drivable. GUI automation (xdotool/ydotool) to paste would be fragile and not officially supported. Not billing circumvention, but not a stable pipeline either. |
-| **Multiple accounts / free teams to farm 100/week** | Technically possible | **Explicitly prohibited.** ToS: *"You shall not have more than one Account at any given time"* and no re-registering after termination. Risk: account termination, data loss, no refund. **Do not do this.** |
-| **Patch `app.asar` / the client bundle to fake `mcpRemaining` or skip `recordMcp`** | Partly | Violates the ToS prohibition on modifying/reverse-engineering/decompiling the Service. The server still receives/derives usage on `record-mcp` and `/meter/balance`, and can reject or flag the account. Reliability: breaks on every app update. **Not advisable / likely ban.** |
-| **Call `workers.paper.design/meter/*` directly or read local cloud cache to avoid MCP** | Unverified | Reading your own cached data is arguably fine, but automating Paper's endpoints is ToS-adjacent (anti-scraping clause) and undocumented. Treat as unsupported, brittle. **Not recommended.** |
+| Option                                                                                  | Works?               | Risk / ToS                                                                                                                                                                                                                                                                        |
+| --------------------------------------------------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pro upgrade**                                                                         | Yes                  | None. Official. **Recommended.**                                                                                                                                                                                                                                                  |
+| **Wait for weekly reset**                                                               | Yes                  | None.                                                                                                                                                                                                                                                                             |
+| **Free tools only for reads**                                                           | Yes                  | None — it's just the metering behaviour.                                                                                                                                                                                                                                          |
+| **Paste HTML into the canvas manually** (clipboard import / Figma paste)                | Yes                  | Legitimate product use; no MCP calls. Costs human time and is not agent-drivable. GUI automation (xdotool/ydotool) to paste would be fragile and not officially supported. Not billing circumvention, but not a stable pipeline either.                                           |
+| **Multiple accounts / free teams to farm 100/week**                                     | Technically possible | **Explicitly prohibited.** ToS: _"You shall not have more than one Account at any given time"_ and no re-registering after termination. Risk: account termination, data loss, no refund. **Do not do this.**                                                                      |
+| **Patch `app.asar` / the client bundle to fake `mcpRemaining` or skip `recordMcp`**     | Partly               | Violates the ToS prohibition on modifying/reverse-engineering/decompiling the Service. The server still receives/derives usage on `record-mcp` and `/meter/balance`, and can reject or flag the account. Reliability: breaks on every app update. **Not advisable / likely ban.** |
+| **Call `workers.paper.design/meter/*` directly or read local cloud cache to avoid MCP** | Unverified           | Reading your own cached data is arguably fine, but automating Paper's endpoints is ToS-adjacent (anti-scraping clause) and undocumented. Treat as unsupported, brittle. **Not recommended.**                                                                                      |
 
 Bottom line: there is **no legitimate way to exceed the cap other than paying for Pro or waiting
 for the reset**. Anything that fakes the meter, multiplies accounts, or patches the client is
@@ -239,26 +240,21 @@ The honest budget strategy is free tools + batching + local-first authoring.
 ## 7. Recommended working method for ~10 screens in ~69 requests
 
 **Phase 0 — free recon (0 requests)**
+
 1. `get_basic_info` (free) to confirm file, page, existing artboards.
 2. `get_guide({topic:"paper-mcp-instructions"})` (free), and `image-generation` / `figma-import`
    only if relevant.
 
-**Phase 1 — author locally (0 requests)**
-3. Write all 10 screens as one HTML document (or 2–3 grouped documents) in the repo. Preview in
-   a local browser. Iterate until it matches. Do not use Paper for iteration.
-4. Prepare the exact HTML you will insert, including any `<x-paper-clone>` reuse and CSS tokens.
+**Phase 1 — author locally (0 requests)** 3. Write all 10 screens as one HTML document (or 2–3 grouped documents) in the repo. Preview in
+a local browser. Iterate until it matches. Do not use Paper for iteration. 4. Prepare the exact HTML you will insert, including any `<x-paper-clone>` reuse and CSS tokens.
 
-**Phase 2 — push (1–3 requests)**
-5. `write_html` with `mode:"insert-children"` targeting the page root, containing the 10 frames.
-   If you're not confident it parses, split into 2–3 calls (e.g. 3–4 screens each) so one bad
-   fragment doesn't cost a full redo. Each call is still just 1 request.
+**Phase 2 — push (1–3 requests)** 5. `write_html` with `mode:"insert-children"` targeting the page root, containing the 10 frames.
+If you're not confident it parses, split into 2–3 calls (e.g. 3–4 screens each) so one bad
+fragment doesn't cost a full redo. Each call is still just 1 request.
 
-**Phase 3 — verify and refine (~8–15 requests)**
-6. `get_tree_summary` or one `get_screenshot` of the page (1–2 requests) to confirm structure.
-7. Apply all fixes as batched calls: one `update_styles` for every style correction, one
-   `set_text_content` for all copy, one `rename_nodes` for all labels, one `duplicate_nodes` to
-   stamp a repeated screen. Aim for ≤10 refinement calls.
-8. `finish_working_on_nodes` (free).
+**Phase 3 — verify and refine (~8–15 requests)** 6. `get_tree_summary` or one `get_screenshot` of the page (1–2 requests) to confirm structure. 7. Apply all fixes as batched calls: one `update_styles` for every style correction, one
+`set_text_content` for all copy, one `rename_nodes` for all labels, one `duplicate_nodes` to
+stamp a repeated screen. Aim for ≤10 refinement calls. 8. `finish_working_on_nodes` (free).
 
 **Budget math**: Phase 2 (≤3) + Phase 3 (≤15) ≈ **≤18 gated requests**, leaving ~50 in reserve.
 If a screen needs a dedicated screenshot, add 1 each — still comfortable. Avoid per-node
@@ -285,7 +281,8 @@ batched `write_html`/`update_styles`.
   <https://paper.design/legal/tos>
 
 **Unverified / caveats**
-- The Saturday-00:00-UTC weekly reset is *derived from client code*; Paper publishes no reset
+
+- The Saturday-00:00-UTC weekly reset is _derived from client code_; Paper publishes no reset
   schedule. Verify against the in-app meter before relying on it.
 - The public tool list omits ~13 tools (comments, tokens, `find_nodes`, `open_file`,
   `list_files`, `create_file`, `create_page`, `export_combined_pdf`, etc.). The gated/free split

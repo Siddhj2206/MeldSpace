@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 
 import { useRoom } from "../room-provider";
 import { listProjectFiles } from "./project";
-import { TEXTS_MAP_NAME, TREE_MAP_NAME, type TreeEntry, type ProjectFile } from "./types";
+import {
+  ASSETS_MAP_NAME,
+  TEXTS_MAP_NAME,
+  TREE_MAP_NAME,
+  type AssetRef,
+  type ProjectFile,
+  type TreeEntry,
+} from "./types";
 
 /**
  * Live view of the room's project files (#24), ordered as the tree says.
@@ -35,4 +42,31 @@ export function useProjectFiles(): ProjectFile[] {
   }, [runtime]);
 
   return files;
+}
+
+export type ProjectAsset = { path: string; ref: AssetRef };
+
+/** Live view of the room's figure assets (#24 metadata; bytes are #8). */
+export function useProjectAssets(): ProjectAsset[] {
+  const { runtime } = useRoom();
+  const [assets, setAssets] = useState<ProjectAsset[]>([]);
+
+  useEffect(() => {
+    if (!runtime) {
+      setAssets([]);
+      return;
+    }
+    const map = runtime.doc.getMap<AssetRef>(ASSETS_MAP_NAME);
+    const read = () => {
+      const list: ProjectAsset[] = [];
+      map.forEach((ref, path) => list.push({ path, ref }));
+      list.sort((a, b) => (a.path < b.path ? -1 : 1));
+      setAssets(list);
+    };
+    map.observe(read);
+    read();
+    return () => map.unobserve(read);
+  }, [runtime]);
+
+  return assets;
 }

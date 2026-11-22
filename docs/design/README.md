@@ -10,12 +10,12 @@ never need to spend Paper MCP requests just to read the design.
 
 ## Files
 
-| File | Artboard | Node | Size |
-| --- | --- | --- | --- |
-| `exports/room-shell-editor.jsx` | Room shell — editor | `1-0` | ~21 KB |
-| `exports/room-shell-board.jsx` | Room shell — board | `4J-0` | ~32 KB |
+| File                                 | Artboard                 | Node   | Size                |
+| ------------------------------------ | ------------------------ | ------ | ------------------- |
+| `exports/room-shell-editor.jsx`      | Room shell — editor      | `1-0`  | ~21 KB              |
+| `exports/room-shell-board.jsx`       | Room shell — board       | `4J-0` | ~32 KB              |
 | `exports/room-remaining-screens.jsx` | Room — remaining screens | `BF-0` | ~158 KB (10 frames) |
-| `exports/tokens.css` | design tokens | — | 40 tokens |
+| `exports/tokens.css`                 | design tokens            | —      | 40 tokens           |
 
 ## How to use these
 
@@ -30,18 +30,18 @@ never need to spend Paper MCP requests just to read the design.
 
 ### Frame map — `room-remaining-screens.jsx`
 
-| # | Screen | Ticket | Lines in this snapshot |
-| --- | --- | --- | --- |
-| 1 | Auth — sign in | #17 | 3–133 |
-| 2 | Auth — create account | #17 | 134–264 |
-| 3 | Create room | #17 | 265–464 |
-| 4 | Join room (code + QR) | #17 | 465–821 |
-| 5 | Share dialog | #15 | 822–1187 |
-| 6 | History — checkpoint timeline | #7 | 1188–1454 |
-| 7 | Rewind confirm | #7 | 1455–1659 |
-| 8 | Image / file surface | #9 | 1660–1940 |
-| 9 | Command palette (⌘K) | #15 | 1941–2268 |
-| 10 | Offline / reconnecting + status | #15, #5 | 2269–end |
+| #   | Screen                          | Ticket  | Lines in this snapshot |
+| --- | ------------------------------- | ------- | ---------------------- |
+| 1   | Auth — sign in                  | #17     | 3–133                  |
+| 2   | Auth — create account           | #17     | 134–264                |
+| 3   | Create room                     | #17     | 265–464                |
+| 4   | Join room (code + QR)           | #17     | 465–821                |
+| 5   | Share dialog                    | #15     | 822–1187               |
+| 6   | History — checkpoint timeline   | #7      | 1188–1454              |
+| 7   | Rewind confirm                  | #7      | 1455–1659              |
+| 8   | Image / file surface            | #9      | 1660–1940              |
+| 9   | Command palette (⌘K)            | #15     | 1941–2268              |
+| 10  | Offline / reconnecting + status | #15, #5 | 2269–end               |
 
 Line numbers are for this committed snapshot and drift on re-export — search for the screen's
 heading text instead. The two shells are in `room-shell-editor.jsx` (#15, #2) and
@@ -63,7 +63,7 @@ Requires Paper Desktop running with the file open. Node IDs come from `get_basic
 
 Full account: [`docs/research/2026-09-12-paper-mcp-budget.md`](../research/2026-09-12-paper-mcp-budget.md).
 
-- Almost every tool is gated at **1 request per call**, counted *before* execution — a call that
+- Almost every tool is gated at **1 request per call**, counted _before_ execution — a call that
   fails still costs. The free tools are exactly `get_basic_info`, `get_guide`,
   `finish_working_on_nodes`.
 - **Batch by class of change**: one `get_jsx`, `write_html`, `update_styles` or `set_text_content`

@@ -2,15 +2,21 @@ import { Button } from "@MeldSpace/ui/components/button";
 import { cn } from "@MeldSpace/ui/lib/utils";
 import { useState } from "react";
 
+import type { CheckpointMeta } from "@/lib/history-store";
+
 import type { Artifact } from "./artifacts";
+import { CheckpointInspect } from "./checkpoint-inspect";
 import type { RailPanel } from "./command-palette";
 import { useCoordinator } from "./coordinator";
+import { HistoryPanel } from "./history-panel";
 import { initials } from "./identity";
+import { LatexPreviewPanel } from "./latex/latex-preview";
 import { useRoom } from "./room-provider";
 import { useRoomRoster } from "./roster";
 
 const PANELS: { id: RailPanel; label: string }[] = [
   { id: "details", label: "Details" },
+  { id: "preview", label: "Preview" },
   { id: "people", label: "People" },
   { id: "history", label: "History" },
 ];
@@ -42,10 +48,11 @@ export function RoomRail({
   onPanelChange: (panel: RailPanel) => void;
   onClose: () => void;
 }) {
-  const { roomId, meta, status, isOnline, mesh } = useRoom();
+  const { roomId, meta, status, isOnline, mesh, checkpoints } = useRoom();
   const roster = useRoomRoster();
   const coordinator = useCoordinator();
   const [copied, setCopied] = useState(false);
+  const [inspected, setInspected] = useState<CheckpointMeta | null>(null);
 
   const roomName = meta?.name ?? `Room ${roomId.slice(0, 8)}`;
 
@@ -102,111 +109,125 @@ export function RoomRail({
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {panel === "details" ? (
-          <div className="flex flex-col gap-3.5">
-            <Row label="Room" value={roomName} />
-            <Row label="Artifact" value={artifact?.title ?? "—"} />
-            <Row label="Type" value={artifact ? SURFACE_LABEL[artifact.kind] : "—"} />
-            <Row label="Source" value={artifact?.sourceKey ?? "—"} />
-            <Row
-              label="Storage"
-              value={
-                status.persisted
-                  ? status.queued > 0
-                    ? `${status.queued} queued`
-                    : "Saved locally"
-                  : "Loading…"
-              }
-            />
-            <Row
-              label="Network"
-              value={isOnline ? `${mesh.webrtc} webrtc · ${mesh.bc} bc` : "Offline"}
-            />
-            <Row
-              label="Join code"
-              value={
-                meta?.joinCode ? (
-                  <button
-                    type="button"
-                    onClick={copyCode}
-                    className="font-mono tracking-[0.08em] text-foreground hover:text-signal"
-                  >
-                    {copied ? "Copied" : meta.joinCode}
-                  </button>
-                ) : (
-                  "—"
-                )
-              }
-            />
-            <Row label="Room id" value={<span className="font-mono text-[12px]">{roomId}</span>} />
-            <div className="h-px w-full bg-border" />
-            <div className="font-mono text-eyebrow tracking-eyebrow text-subtle-foreground uppercase">
-              Versions
-            </div>
-            <div className="text-body-sm text-subtle-foreground">
-              No checkpoints on this device yet. History arrives with #7.
-            </div>
-          </div>
-        ) : null}
+      {panel === "history" ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <HistoryPanel onInspect={(checkpoint) => setInspected(checkpoint)} />
+        </div>
+      ) : null}
 
-        {panel === "people" ? (
-          <div className="flex flex-col gap-2">
-            {roster.length === 0 ? (
-              <div className="text-body-sm text-subtle-foreground">
-                No one else yet. Share the room to bring a peer in.
-              </div>
-            ) : (
-              roster.map((entry) => {
-                const isCoordinator =
-                  coordinator !== null &&
-                  entry.clientId !== undefined &&
-                  entry.clientId === coordinator.clientId;
-                return (
-                  <div key={entry.key} className="flex h-8 items-center gap-2.5">
-                    <span
-                      className="flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-[#0B0C0D]"
-                      style={{ backgroundColor: entry.color }}
+      {panel !== "history" ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {panel === "details" ? (
+            <div className="flex flex-col gap-3.5">
+              <Row label="Room" value={roomName} />
+              <Row label="Artifact" value={artifact?.title ?? "—"} />
+              <Row label="Type" value={artifact ? SURFACE_LABEL[artifact.kind] : "—"} />
+              <Row label="Source" value={artifact?.sourceKey ?? "—"} />
+              <Row
+                label="Storage"
+                value={
+                  status.persisted
+                    ? status.queued > 0
+                      ? `${status.queued} queued`
+                      : "Saved locally"
+                    : "Loading…"
+                }
+              />
+              <Row
+                label="Network"
+                value={isOnline ? `${mesh.webrtc} webrtc · ${mesh.bc} bc` : "Offline"}
+              />
+              <Row
+                label="Join code"
+                value={
+                  meta?.joinCode ? (
+                    <button
+                      type="button"
+                      onClick={copyCode}
+                      className="font-mono tracking-[0.08em] text-foreground hover:text-signal"
                     >
-                      {initials(entry.name)}
-                    </span>
-                    <span className="truncate text-body-sm text-foreground">
-                      {entry.name}
-                      {entry.isSelf ? (
-                        <span className="ml-1.5 text-micro text-subtle-foreground">you</span>
-                      ) : null}
-                    </span>
-                    <span className="flex-1" />
-                    {isCoordinator ? (
-                      <span className="font-mono text-[10px] tracking-[0.08em] text-signal">
-                        COORD · R{coordinator.epoch}
-                      </span>
-                    ) : (
-                      <span
-                        className={cn(
-                          "font-mono text-[10px] tracking-[0.08em]",
-                          entry.present ? "text-signal" : "text-subtle-foreground",
-                        )}
-                      >
-                        {entry.present ? "PRESENT" : "PEER"}
-                      </span>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        ) : null}
-
-        {panel === "history" ? (
-          <div className="flex flex-col gap-2">
-            <div className="text-body-sm text-subtle-foreground">
-              Checkpoints are taken when a surface goes quiet. The timeline lands with #7, backed by
-              the checkpoint log in #6.
+                      {copied ? "Copied" : meta.joinCode}
+                    </button>
+                  ) : (
+                    "—"
+                  )
+                }
+              />
+              <Row
+                label="Room id"
+                value={<span className="font-mono text-[12px]">{roomId}</span>}
+              />
+              <div className="h-px w-full bg-border" />
+              <div className="font-mono text-eyebrow tracking-eyebrow text-subtle-foreground uppercase">
+                Versions
+              </div>
+              <div className="text-body-sm text-subtle-foreground">
+                {checkpoints.length === 0
+                  ? "No checkpoints yet — the room checkpoints itself after a quiet minute."
+                  : `${checkpoints.length} checkpoint${checkpoints.length === 1 ? "" : "s"} on this device.`}
+              </div>
             </div>
-          </div>
-        ) : null}
-      </div>
+          ) : null}
+
+          {panel === "preview" ? <LatexPreviewPanel /> : null}
+
+          {panel === "people" ? (
+            <div className="flex flex-col gap-2">
+              {roster.length === 0 ? (
+                <div className="text-body-sm text-subtle-foreground">
+                  No one else yet. Share the room to bring a peer in.
+                </div>
+              ) : (
+                roster.map((entry) => {
+                  const isCoordinator =
+                    coordinator !== null &&
+                    entry.clientId !== undefined &&
+                    entry.clientId === coordinator.clientId;
+                  return (
+                    <div key={entry.key} className="flex h-8 items-center gap-2.5">
+                      <span
+                        className="flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-[#0B0C0D]"
+                        style={{ backgroundColor: entry.color }}
+                      >
+                        {initials(entry.name)}
+                      </span>
+                      <span className="truncate text-body-sm text-foreground">
+                        {entry.name}
+                        {entry.isSelf ? (
+                          <span className="ml-1.5 text-micro text-subtle-foreground">you</span>
+                        ) : null}
+                      </span>
+                      <span className="flex-1" />
+                      {isCoordinator ? (
+                        <span className="font-mono text-[10px] tracking-[0.08em] text-signal">
+                          COORD · R{coordinator.epoch}
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            "font-mono text-[10px] tracking-[0.08em]",
+                            entry.present ? "text-signal" : "text-subtle-foreground",
+                          )}
+                        >
+                          {entry.present ? "PRESENT" : "PEER"}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <CheckpointInspect
+        checkpoint={inspected}
+        open={inspected !== null}
+        onOpenChange={(open) => {
+          if (!open) setInspected(null);
+        }}
+      />
     </aside>
   );
 }

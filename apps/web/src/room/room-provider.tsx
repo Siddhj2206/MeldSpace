@@ -16,64 +16,20 @@ import { WebrtcProvider } from "y-webrtc";
 
 import { ENV } from "@/env";
 import { HistoryStore, type CheckpointMeta } from "@/lib/history-store";
+import { readDeviceId, readGuestName } from "@/lib/peer-identity";
 import { useTRPC } from "@/utils/trpc";
 
+import { BlobStore } from "./blobs";
+import { useCoordinatorElection } from "./coordinator";
 import { identityColor, initials } from "./identity";
+import { useAwayIds } from "./use-away";
 import { ensureProject, seedSampleProject } from "./project/migrate";
 import { listProjectFiles } from "./project/project";
 import { readRoomContent } from "./room-content";
 import { deriveRoomStatus, type RoomStatus } from "./room-status";
 
-const GUEST_NAME_KEY = "meldspace.peer-name";
-const DEVICE_ID_KEY = "meldspace:device-id";
-
-/**
- * RFC 4122 v4 id. `crypto.randomUUID` only exists in secure contexts, so a LAN
- * demo served over http needs this fallback — otherwise the device id below
- * degrades to a per-load value and checkpoint authorship becomes unstable.
- */
-function randomId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
-    const random = (Math.random() * 16) | 0;
-    const value = char === "x" ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
-
-/**
- * Stable per-browser author id until #17 binds Better Auth identity to
- * `device.register`. Persisted in localStorage so checkpoints keep the same
- * author across reloads on one device.
- */
-function readDeviceId(): string {
-  if (typeof window === "undefined") return "";
-  try {
-    const existing = window.localStorage.getItem(DEVICE_ID_KEY);
-    if (existing) return existing;
-    const fresh = randomId();
-    window.localStorage.setItem(DEVICE_ID_KEY, fresh);
-    return fresh;
-  } catch {
-    return `ephemeral-${Date.now().toString(36)}`;
-  }
-}
-
-/** A stable per-browser alias, used when nobody is signed in. */
-function readGuestName(): string {
-  if (typeof window === "undefined") return "Guest";
-  try {
-    const existing = window.localStorage.getItem(GUEST_NAME_KEY);
-    if (existing) return existing;
-    const generated = `Guest ${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-    window.localStorage.setItem(GUEST_NAME_KEY, generated);
-    return generated;
-  } catch {
-    return "Guest";
-  }
-}
+/** Stillness before an automatic checkpoint lands (#7). */
+const QUIET_CHECKPOINT_MS = 60_000;
 
 function signalingUrl(): string {
   if (ENV.VITE_SIGNALING_URL) return ENV.VITE_SIGNALING_URL;
@@ -81,11 +37,37 @@ function signalingUrl(): string {
   return `${scheme}://${window.location.hostname}:4444`;
 }
 
+/**
+ * ICE servers for cross-network peers (#19). Direct P2P stays the default
+ * path — ICE prefers a direct pair and only falls back to the relay. A TURN
+ * relay forwards encrypted DTLS and is content-blind, so it never becomes a
+ * source of truth. Unset env means exactly the old LAN behaviour.
+ */
+function iceServers(): RTCIceServer[] {
+  const servers: RTCIceServer[] = [];
+  if (ENV.VITE_STUN_URL) servers.push({ urls: ENV.VITE_STUN_URL });
+  if (ENV.VITE_TURN_URL) {
+    servers.push({
+      urls: ENV.VITE_TURN_URL,
+      username: ENV.VITE_TURN_USERNAME,
+      credential: ENV.VITE_TURN_CREDENTIAL,
+    });
+  }
+  return servers;
+}
+
 export type RoomRuntime = {
   doc: Y.Doc;
   awareness: Awareness;
   provider: WebrtcProvider;
   persistence: IndexeddbPersistence;
+  /**
+   * Content-addressed blob transport (#8) on its own doc + provider — separate
+   * from room metadata and out of checkpoint snapshots.
+   */
+  blobStore: BlobStore;
+  blobProvider: WebrtcProvider;
+  blobPersistence: IndexeddbPersistence;
 };
 
 export type RoomPeer = {
@@ -139,6 +121,11 @@ export type RoomContextValue = {
    * here yet — that call is where the coordinator gate belongs.
    */
   createCheckpoint: () => void;
+  /**
+   * "While you were away" (#7): ids of checkpoints this device hadn't seen
+   * when the room opened, per the localStorage seen-marker.
+   */
+  awayIds: string[];
 };
 
 const RoomContext = createContext<RoomContextValue | null>(null);
@@ -174,6 +161,7 @@ export function RoomProvider({
   const [deviceId] = useState(readDeviceId);
   const [history, setHistory] = useState<HistoryStore | null>(null);
   const [checkpoints, setCheckpoints] = useState<CheckpointMeta[]>([]);
+  const awayIds = useAwayIds(roomId, checkpoints);
 
   const onlineRef = useRef(isOnline);
   onlineRef.current = isOnline;
@@ -185,19 +173,43 @@ export function RoomProvider({
   useEffect(() => {
     const doc = new Y.Doc();
     const persistence = new IndexeddbPersistence(`meldspace-${roomId}`, doc);
+    const ice = iceServers();
     const provider = new WebrtcProvider(roomId, doc, {
       signaling: [signalingUrl()],
       maxConns: 20,
       // Same-browser tabs sync over BroadcastChannel; this is the R1 fallback
       // when WebRTC signaling isn't reachable. y-webrtc defaults to true.
       filterBcConns: true,
+      // y-webrtc spreads peerOpts into simple-peer's constructor.
+      peerOpts: ice.length > 0 ? { config: { iceServers: ice } } : {},
     });
-    setRuntime({ doc, awareness: provider.awareness, provider, persistence });
+    // The blob channel (#8): same transports, separate room + store, so image
+    // bytes replicate peer-to-peer without touching checkpoints or metadata.
+    const blobDoc = new Y.Doc();
+    const blobPersistence = new IndexeddbPersistence(`meldspace-blobs-${roomId}`, blobDoc);
+    const blobProvider = new WebrtcProvider(`${roomId}-blobs`, blobDoc, {
+      signaling: [signalingUrl()],
+      maxConns: 20,
+      filterBcConns: true,
+      peerOpts: ice.length > 0 ? { config: { iceServers: ice } } : {},
+    });
+    setRuntime({
+      doc,
+      awareness: provider.awareness,
+      provider,
+      persistence,
+      blobStore: new BlobStore(blobDoc),
+      blobProvider,
+      blobPersistence,
+    });
 
     return () => {
       provider.destroy();
       persistence.destroy();
       doc.destroy();
+      blobProvider.destroy();
+      blobPersistence.destroy();
+      blobDoc.destroy();
       setRuntime(null);
     };
   }, [roomId]);
@@ -306,6 +318,29 @@ export function RoomProvider({
     };
   }, [runtime]);
 
+  // Quiet-room checkpoints (#7): a minute of stillness lands a checkpoint, so
+  // the log is the room's memory even when nobody presses the button.
+  // `createCheckpoint` dedups on content hash, so trailing timers cost nothing.
+  useEffect(() => {
+    if (!runtime || !history) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const arm = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        history.createCheckpoint({ deviceId, displayName: name });
+      }, QUIET_CHECKPOINT_MS);
+    };
+    runtime.doc.on("update", arm);
+    return () => {
+      runtime.doc.off("update", arm);
+      if (timer) clearTimeout(timer);
+    };
+  }, [runtime, history, deviceId, name]);
+
+  // The coordinator election (#10) runs inside the provider so the role is
+  // held — or vacated — independently of which surface is open.
+  useCoordinatorElection(runtime);
+
   const createCheckpoint = useCallback(() => {
     history?.createCheckpoint({ deviceId, displayName: name });
   }, [history, deviceId, name]);
@@ -341,6 +376,7 @@ export function RoomProvider({
       history,
       checkpoints,
       createCheckpoint,
+      awayIds,
     }),
     [
       roomId,
@@ -356,6 +392,7 @@ export function RoomProvider({
       history,
       checkpoints,
       createCheckpoint,
+      awayIds,
     ],
   );
 

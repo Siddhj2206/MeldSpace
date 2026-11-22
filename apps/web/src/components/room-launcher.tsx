@@ -5,6 +5,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { authClient } from "@/lib/auth-client";
+import { adoptDeviceId, readGuestName } from "@/lib/peer-identity";
 import { useTRPC } from "@/utils/trpc";
 
 function randomRoomId() {
@@ -18,13 +20,25 @@ export function parseRoomRef(value: string): string {
   return match?.[1] ?? trimmed;
 }
 
+/**
+ * A #4 join code is 6 chars from an unambiguous alphabet (no I/L/O/0/1);
+ * room ids are UUIDs. Six chars can only ever be a code — case-insensitive
+ * so a typed lowercase code still resolves.
+ */
+export function isJoinCode(value: string): boolean {
+  return /^[A-HJ-NP-Z2-9]{6}$/i.test(value.trim());
+}
+
 export default function RoomLauncher() {
   const trpc = useTRPC();
   const navigate = useNavigate();
+  const { data: session } = authClient.useSession();
   const [name, setName] = useState("");
   const [roomRef, setRoomRef] = useState("");
 
   const create = useMutation(trpc.room.create.mutationOptions());
+  const register = useMutation(trpc.device.register.mutationOptions());
+  const join = useMutation(trpc.room.join.mutationOptions());
 
   const openRoom = (id: string, fresh = false) => {
     void navigate({
@@ -45,10 +59,36 @@ export default function RoomLauncher() {
     }
   };
 
-  const onOpen = () => {
-    const id = parseRoomRef(roomRef);
+  const onOpen = async () => {
+    const ref = roomRef.trim();
+    if (!ref) {
+      toast.error("Paste a room link, id, or join code");
+      return;
+    }
+
+    // A 6-char code joins through the control plane (#4): register this device
+    // anonymously, record membership, then open the room it resolved to.
+    if (isJoinCode(ref)) {
+      try {
+        const displayName = session?.user.name ?? readGuestName();
+        const registered = await register.mutateAsync({ displayName });
+        adoptDeviceId(registered.deviceId);
+        const joined = await join.mutateAsync({
+          joinCode: ref,
+          deviceId: registered.deviceId,
+          displayName,
+        });
+        openRoom(joined.roomId);
+        return;
+      } catch {
+        toast.error("Couldn't join with that code — check it, or paste the room link");
+        return;
+      }
+    }
+
+    const id = parseRoomRef(ref);
     if (!id) {
-      toast.error("Paste a room link or id");
+      toast.error("Paste a room link, id, or join code");
       return;
     }
     openRoom(id);
@@ -95,13 +135,18 @@ export default function RoomLauncher() {
         <Input
           value={roomRef}
           onChange={(event) => setRoomRef(event.target.value)}
-          placeholder="Paste a room link or id"
+          placeholder="Paste a room link, id, or 6-letter code"
           onKeyDown={(event) => {
-            if (event.key === "Enter") onOpen();
+            if (event.key === "Enter") void onOpen();
           }}
         />
-        <Button variant="outline" className="h-9.5 w-full text-[14px]" onClick={onOpen}>
-          Open room
+        <Button
+          variant="outline"
+          className="h-9.5 w-full text-[14px]"
+          disabled={join.isPending || register.isPending}
+          onClick={() => void onOpen()}
+        >
+          {join.isPending || register.isPending ? "Joining…" : "Open room"}
         </Button>
       </div>
     </section>

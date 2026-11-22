@@ -73,6 +73,7 @@ export function RoomSidebar({
   activeId,
   onOpenArtifact,
   onCreateArtifact,
+  onAddFigure,
   onOpenPalette,
   onOpenShare,
 }: {
@@ -80,6 +81,7 @@ export function RoomSidebar({
   activeId: string | null;
   onOpenArtifact: (artifact: Artifact) => void;
   onCreateArtifact: () => void;
+  onAddFigure: () => void;
   onOpenPalette: () => void;
   onOpenShare: () => void;
 }) {
@@ -216,6 +218,16 @@ export function RoomSidebar({
                   <PlusIcon />
                   <span className="flex-1">New file</span>
                   <span className="font-mono text-[9.5px] text-subtle-foreground">⌘N</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="Add a figure (image)"
+                  onClick={onAddFigure}
+                  className="h-8 gap-2 rounded-sm px-2 text-body-sm text-subtle-foreground hover:text-foreground"
+                >
+                  <FileIcon />
+                  <span className="flex-1">Add figure</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

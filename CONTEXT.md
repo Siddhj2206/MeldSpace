@@ -14,17 +14,17 @@ disconnection, device failure, and a change of coordinator.**
 
 ## Primitives
 
-| Term | Meaning | Durability |
-| --- | --- | --- |
-| **Peer / device** | One replica of the room. Stable `deviceId`. | Identity durable; session is not. |
-| **Room** | The distributed collaborative object. | Durable, replicated across peers. |
-| **Artifact** | Durable content: document, board, image, comment. | Durable. |
-| **Surface** | A way of viewing an artifact. Never the data model. | — |
-| **Operation** | A meaningful change eligible for a checkpoint. | Durable once checkpointed. |
-| **Checkpoint** | A content-addressed snapshot of meaningful room state. | Durable. |
-| **Presence** | Who is here, doing what, right now. | Ephemeral. |
-| **Coordinator** | The peer currently holding the coordination role. | Presence-derived. |
-| **Epoch** | Monotonic counter of coordination handoffs. | Durable, in the room's CRDT. |
+| Term              | Meaning                                                | Durability                        |
+| ----------------- | ------------------------------------------------------ | --------------------------------- |
+| **Peer / device** | One replica of the room. Stable `deviceId`.            | Identity durable; session is not. |
+| **Room**          | The distributed collaborative object.                  | Durable, replicated across peers. |
+| **Artifact**      | Durable content: document, board, image, comment.      | Durable.                          |
+| **Surface**       | A way of viewing an artifact. Never the data model.    | —                                 |
+| **Operation**     | A meaningful change eligible for a checkpoint.         | Durable once checkpointed.        |
+| **Checkpoint**    | A content-addressed snapshot of meaningful room state. | Durable.                          |
+| **Presence**      | Who is here, doing what, right now.                    | Ephemeral.                        |
+| **Coordinator**   | The peer currently holding the coordination role.      | Presence-derived.                 |
+| **Epoch**         | Monotonic counter of coordination handoffs.            | Durable, in the room's CRDT.      |
 
 ## Authority
 

@@ -1,10 +1,11 @@
 import { Button } from "@MeldSpace/ui/components/button";
 import { SidebarProvider, useSidebar } from "@MeldSpace/ui/components/sidebar";
 import { cn } from "@MeldSpace/ui/lib/utils";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import type { Artifact } from "./artifacts";
-import { projectFileArtifacts } from "./artifacts";
+import { projectAssetArtifacts, projectFileArtifacts } from "./artifacts";
 import { CommandPalette, type RailPanel } from "./command-palette";
 import {
   BoardIcon,
@@ -15,9 +16,10 @@ import {
   PlusIcon,
   ShareIcon,
 } from "./icons";
-import { createProjectFile } from "./project/project";
-import { useProjectFiles } from "./project/use-project";
+import { createProjectFile, setProjectAsset } from "./project/project";
+import { useProjectAssets, useProjectFiles } from "./project/use-project";
 import { useRoom } from "./room-provider";
+import { LatexCompileProvider, useLatexCompileContext } from "./latex/latex-compile-context";
 import { RoomRail } from "./room-rail";
 import { RoomSidebar, RoomSidebarTrigger } from "./room-sidebar";
 import { ShareDialog } from "./share-dialog";
@@ -55,11 +57,52 @@ function PresenceStack() {
   );
 }
 
-function RoomShellInner() {
+/**
+ * Compiles the room's LaTeX sources to a local PDF preview (#27). The PDF is
+ * derived local state — never synced, never checkpointed — so each peer
+ * renders their own view of the shared sources.
+ */
+function RecompileButton({ onOpenPreview }: { onOpenPreview: () => void }) {
+  const compile = useLatexCompileContext();
+  const compiling = compile.phase === "compiling";
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => {
+        onOpenPreview();
+        void compile.recompile();
+      }}
+      disabled={compiling}
+      title="Compile the room's LaTeX sources to PDF, locally. The PDF is never synced."
+      className="h-7.5 shrink-0 rounded-sm px-2.5 text-[12.5px] text-muted-foreground"
+    >
+      {compiling ? "Compiling…" : "Recompile"}
+    </Button>
+  );
+}
+
+function RoomShellBody() {
   const { toggleSidebar } = useSidebar();
   const { runtime, checkpoints, createCheckpoint } = useRoom();
   const files = useProjectFiles();
-  const artifacts = useMemo(() => projectFileArtifacts(files), [files]);
+  const assets = useProjectAssets();
+  const artifacts = useMemo(
+    () => [
+      ...projectFileArtifacts(files),
+      ...projectAssetArtifacts(assets),
+      // One diagram board per room (#11) — a figure tool, always present.
+      {
+        id: "board:main",
+        kind: "board" as const,
+        surface: "board" as const,
+        title: "Board",
+        subtitle: "Diagram",
+        sourceKey: "board",
+      },
+    ],
+    [files, assets],
+  );
+  const compile = useLatexCompileContext();
 
   const [openIds, setOpenIds] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -105,6 +148,41 @@ function RoomShellInner() {
     });
   };
 
+  // Figure upload (#9): bytes go to the blob store by content hash, only the
+  // {hash, mime, size} ref enters the room doc's assets map.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadFigure = useCallback(
+    async (file: File) => {
+      if (!runtime) return;
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const hash = await runtime.blobStore.put(bytes, file.type || "image/png");
+        const safe = file.name.replace(/[^\w.-]+/g, "-") || "figure.png";
+        let path = `figures/${safe}`;
+        let attempt = 2;
+        while (
+          files.some((entry) => entry.path === path) ||
+          assets.some((entry) => entry.path === path)
+        ) {
+          path = `figures/${attempt}-${safe}`;
+          attempt += 1;
+        }
+        setProjectAsset(runtime.doc, path, {
+          hash,
+          mime: file.type || "image/png",
+          size: bytes.byteLength,
+        });
+        const id = `asset:${path}`;
+        setOpenIds((ids) => (ids.includes(id) ? ids : [...ids, id]));
+        setActiveId(id);
+        setRailPanel(null);
+      } catch {
+        toast.error("Couldn't add that figure");
+      }
+    },
+    [runtime, files, assets],
+  );
+
   const createArtifact = useCallback(() => {
     if (!runtime) return;
     // The room is one LaTeX project: a new artifact is a new .tex file.
@@ -120,6 +198,11 @@ function RoomShellInner() {
     setActiveId(id);
     setRailPanel(null);
   }, [runtime, files]);
+
+  const openPreviewAndCompile = useCallback(() => {
+    setRailPanel("preview");
+    void compile.recompile();
+  }, [compile]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -168,6 +251,7 @@ function RoomShellInner() {
         activeId={activeArtifact?.id ?? null}
         onOpenArtifact={openArtifact}
         onCreateArtifact={createArtifact}
+        onAddFigure={() => fileInputRef.current?.click()}
         onOpenPalette={() => setPaletteOpen(true)}
         onOpenShare={() => setShareOpen(true)}
       />
@@ -222,6 +306,7 @@ function RoomShellInner() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            <RecompileButton onOpenPreview={() => setRailPanel("preview")} />
             <Button
               variant="ghost"
               onClick={createCheckpoint}
@@ -270,6 +355,17 @@ function RoomShellInner() {
         </div>
       </div>
 
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (file) void uploadFigure(file);
+        }}
+      />
       <ShareDialog open={shareOpen} onOpenChange={setShareOpen} />
       <CommandPalette
         open={paletteOpen}
@@ -281,8 +377,18 @@ function RoomShellInner() {
         onToggleSidebar={toggleSidebar}
         onCreateCheckpoint={createCheckpoint}
         canCheckpoint={runtime !== null}
+        onRecompile={openPreviewAndCompile}
+        canRecompile={runtime !== null}
       />
     </>
+  );
+}
+
+function RoomShellInner() {
+  return (
+    <LatexCompileProvider>
+      <RoomShellBody />
+    </LatexCompileProvider>
   );
 }
 
