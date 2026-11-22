@@ -1,5 +1,5 @@
 import type { Artifact, SurfaceId } from "./artifacts";
-import { DocumentSurface } from "./document-surface";
+import { LatexSurface } from "./latex-surface";
 
 /**
  * The surface registry. A surface renders one artifact; it reads the shared
@@ -9,7 +9,7 @@ import { DocumentSurface } from "./document-surface";
 export function Surface({ artifact }: { artifact: Artifact }) {
   switch (artifact.surface) {
     case "document":
-      return <DocumentSurface artifact={artifact} />;
+      return <LatexSurface artifact={artifact} />;
     default:
       return <SurfacePlaceholder surface={artifact.surface} title={artifact.title} />;
   }
@@ -21,7 +21,7 @@ export function Surface({ artifact }: { artifact: Artifact }) {
  */
 function SurfacePlaceholder({ surface, title }: { surface: SurfaceId; title: string }) {
   const tickets: Record<SurfaceId, string> = {
-    document: "#2",
+    document: "#25",
     board: "#11",
     images: "#9",
     comments: "#7",
